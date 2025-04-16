@@ -1,11 +1,87 @@
-:root {
-  --navy-blue: #001f3f;
-  --navy-blue-light: #003366;
-  --navy-blue-dark: #000d1a;
-  --white: #ffffff;
-  --black: #000000;
-  --gray-light: #f5f5f5;
-  --gray-dark: #333333;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy-blue: #001f3f;
+    --navy-blue-light: #003366;
+    --navy-blue-dark: #000d1a;
+    --white: #ffffff;
+    --black: #000000;
+    --gray-light: #f5f5f5;
+    --gray-dark: #333333;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-semibold transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-primary-600 border border-primary-600 hover:bg-gray-50;
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-label {
+    @apply block mb-2 text-gray-700;
+  }
+
+  .form-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6 mb-4;
+  }
+
+  .event-card {
+    @apply border border-gray-200 rounded-lg overflow-hidden transition-transform hover:-translate-y-1;
+  }
+
+  .event-card img {
+    @apply w-full h-48 object-cover;
+  }
+
+  .event-card-content {
+    @apply p-4;
+  }
+
+  .event-card-title {
+    @apply text-primary-600 mb-2;
+  }
+
+  .event-card-description {
+    @apply text-gray-700 mb-4;
+  }
+
+  .notification {
+    @apply bg-white border-l-4 border-primary-600 p-4 mb-4;
+  }
+
+  .notification.unread {
+    @apply bg-primary-50;
+  }
+
+  .profile-section {
+    @apply bg-white p-8 rounded-lg shadow-md;
+  }
+
+  .profile-header {
+    @apply flex items-center mb-8;
+  }
+
+  .profile-avatar {
+    @apply w-24 h-24 rounded-full bg-primary-600 mr-4;
+  }
 }
 
 * {
@@ -57,135 +133,6 @@ body {
   background-color: var(--navy-blue-light);
 }
 
-/* Button Styles */
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.btn-primary {
-  background-color: var(--navy-blue);
-  color: var(--white);
-}
-
-.btn-primary:hover {
-  background-color: var(--navy-blue-light);
-}
-
-.btn-secondary {
-  background-color: var(--white);
-  color: var(--navy-blue);
-  border: 1px solid var(--navy-blue);
-}
-
-.btn-secondary:hover {
-  background-color: var(--gray-light);
-}
-
-/* Form Styles */
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--gray-dark);
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--navy-blue);
-  box-shadow: 0 0 0 2px rgba(0, 31, 63, 0.2);
-}
-
-/* Card Styles */
-.card {
-  background-color: var(--white);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-/* Event Card Styles */
-.event-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.3s;
-}
-
-.event-card:hover {
-  transform: translateY(-5px);
-}
-
-.event-card img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-}
-
-.event-card-content {
-  padding: 1rem;
-}
-
-.event-card-title {
-  color: var(--navy-blue);
-  margin-bottom: 0.5rem;
-}
-
-.event-card-description {
-  color: var(--gray-dark);
-  margin-bottom: 1rem;
-}
-
-/* Notification Styles */
-.notification {
-  background-color: var(--white);
-  border-left: 4px solid var(--navy-blue);
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.notification.unread {
-  background-color: rgba(0, 31, 63, 0.05);
-}
-
-/* Profile Styles */
-.profile-section {
-  background-color: var(--white);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.profile-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.profile-avatar {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background-color: var(--navy-blue);
-  margin-right: 1rem;
-}
-
 /* Footer Styles */
 .footer {
   background-color: var(--navy-blue);
@@ -225,4 +172,4 @@ body {
 
 .footer-section a:hover {
   text-decoration: underline;
-} 
+}

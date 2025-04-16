@@ -30,9 +30,14 @@ export const createEvent = createAsyncThunk(
     'events/createEvent',
     async (eventData, { rejectWithValue }) => {
         try {
-            const response = await api.post('/events', eventData);
+            const response = await api.post('/events', eventData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
             return response.data;
         } catch (error) {
+            console.error('Error in createEvent:', error);
             return rejectWithValue(error.response?.data?.message || 'Failed to create event');
         }
     }
@@ -245,4 +250,4 @@ const eventSlice = createSlice({
 });
 
 export const { clearError, clearSuccess } = eventSlice.actions;
-export default eventSlice.reducer; 
+export default eventSlice.reducer;

@@ -1,83 +1,196 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './Home.css';
 import { useSelector } from 'react-redux';
+import {
+  CalendarIcon,
+  UserGroupIcon,
+  AcademicCapIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  MapPinIcon,
+  SparklesIcon,
+} from '@heroicons/react/24/outline';
+
+const FeatureCard = ({ icon: Icon, title, description }) => (
+  <div className="relative group">
+    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-600 to-primary-400 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-200"></div>
+    <div className="relative p-6 bg-white rounded-lg shadow-sm hover:shadow-md transition duration-200">
+      <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-4">
+        <Icon className="w-6 h-6 text-primary-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  </div>
+);
+
+const EventCard = ({ title, date, location, image }) => (
+  <div className="group relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition duration-200">
+    <div className="aspect-w-16 aspect-h-9">
+      <img
+        src={image}
+        alt={title}
+        className="object-cover w-full h-full group-hover:scale-105 transition duration-200"
+      />
+    </div>
+    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+    <div className="absolute bottom-0 left-0 right-0 p-4">
+      <h3 className="text-white font-semibold text-lg mb-2">{title}</h3>
+      <div className="flex items-center text-white/80 text-sm space-x-4">
+        <div className="flex items-center">
+          <ClockIcon className="w-4 h-4 mr-1" />
+          <span>{date}</span>
+        </div>
+        <div className="flex items-center">
+          <MapPinIcon className="w-4 h-4 mr-1" />
+          <span>{location}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const Home = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
 
+  const features = [
+    {
+      icon: CalendarIcon,
+      title: "Event Management",
+      description: "Create and manage events with ease. Set dates, locations, and manage registrations all in one place."
+    },
+    {
+      icon: UserGroupIcon,
+      title: "Community",
+      description: "Connect with other students, join events, and build your network within your university community."
+    },
+    {
+      icon: AcademicCapIcon,
+      title: "Academic Integration",
+      description: "Stay updated with academic events, workshops, and seminars that enhance your learning experience."
+    }
+  ];
+
+  const upcomingEvents = [
+    {
+      title: "Tech Innovation Summit",
+      date: "Mar 25, 2024",
+      location: "Main Auditorium",
+      image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3"
+    },
+    {
+      title: "Career Fair 2024",
+      date: "Mar 28, 2024",
+      location: "Student Center",
+      image: "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3"
+    },
+    {
+      title: "Cultural Festival",
+      date: "Apr 1, 2024",
+      location: "Campus Green",
+      image: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3"
+    }
+  ];
+
   return (
-    <div className="home-container">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            <span className="fade-in">Welcome to</span>
-            <span className="highlight fade-in-delay">UniEvents</span>
-          </h1>
-          <p className="hero-description fade-in-delay">
-            Discover, participate, and create amazing university events. Connect with your campus community and make the most of your university experience.
-          </p>
-          <div className="hero-buttons fade-in-delay">
-            {!isAuthenticated && (
-              <>
-                <Link to="/auth/register" className="button primary">
-                  Sign Up
-                </Link>
-                <Link to="/auth/login" className="button secondary">
-                  Sign In
-                </Link>
-              </>
-            )}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-primary-800 text-white">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-primary-900/30"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-900/80 to-transparent"></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-8">
+            <div className="lg:col-span-7">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display mb-6">
+                Welcome to{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-white">
+                  UniEvents
+                </span>
+              </h1>
+              <p className="text-lg md:text-xl text-primary-100 mb-8 max-w-3xl">
+                Discover, participate, and create amazing university events. Connect with your campus community and make the most of your university experience.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                {!isAuthenticated && (
+                  <>
+                    <Link
+                      to="/register"
+                      className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-primary-600 font-semibold hover:bg-primary-50 transition duration-200"
+                    >
+                      Get Started
+                      <ChevronRightIcon className="w-5 h-5 ml-2" />
+                    </Link>
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center px-6 py-3 rounded-lg border-2 border-white/20 hover:bg-white/10 transition duration-200"
+                    >
+                      Sign In
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="features-section">
-        <div className="features-header">
-          <span className="features-label">Features</span>
-          <h2 className="features-title">Everything you need to manage events</h2>
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center mb-4">
+              <SparklesIcon className="w-6 h-6 text-primary-600 mr-2" />
+              <span className="text-primary-600 font-semibold">Features</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-4">
+              Everything you need to manage events
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Streamline your event planning and management with our comprehensive set of features.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <FeatureCard key={index} {...feature} />
+            ))}
+          </div>
         </div>
+      </section>
 
-        <div className="features-grid">
-          {/* Feature 1 */}
-          <div className="feature-card">
-            <div className="feature-icon calendar-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+      {/* Upcoming Events Section */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center mb-4">
+              <CalendarIcon className="w-6 h-6 text-primary-600 mr-2" />
+              <span className="text-primary-600 font-semibold">Upcoming Events</span>
             </div>
-            <div className="feature-content">
-              <h3>Event Management</h3>
-              <p>Create and manage events with ease. Set dates, locations, and manage registrations.</p>
-            </div>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-4">
+              Don't miss out on these events
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Join exciting events happening around your campus and expand your horizons.
+            </p>
           </div>
 
-          {/* Feature 2 */}
-          <div className="feature-card">
-            <div className="feature-icon community-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <div className="feature-content">
-              <h3>Community</h3>
-              <p>Connect with other students, join events, and build your network.</p>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {upcomingEvents.map((event, index) => (
+              <EventCard key={index} {...event} />
+            ))}
           </div>
 
-          {/* Feature 3 */}
-          <div className="feature-card">
-            <div className="feature-icon academic-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-              </svg>
-            </div>
-            <div className="feature-content">
-              <h3>Academic Integration</h3>
-              <p>Stay updated with academic events, workshops, and seminars.</p>
-            </div>
+          <div className="text-center mt-12">
+            <Link
+              to="/events"
+              className="inline-flex items-center px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition duration-200"
+            >
+              View All Events
+              <ChevronRightIcon className="w-5 h-5 ml-2" />
+            </Link>
           </div>
         </div>
       </section>
@@ -85,4 +198,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;

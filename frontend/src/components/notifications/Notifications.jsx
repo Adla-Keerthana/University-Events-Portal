@@ -1,8 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getNotifications, markNotificationAsRead } from '../../features/notifications/notificationSlice';
-import { BellIcon } from '@heroicons/react/24/outline';
+import { BellIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
+
+const NotificationItem = ({ notification, onClick }) => (
+  <div
+    onClick={onClick}
+    className={`group px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-200 ${
+      !notification.read ? 'bg-primary-50' : ''
+    }`}
+  >
+    <div className="flex items-start space-x-3">
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium ${!notification.read ? 'text-primary-900' : 'text-gray-900'}`}>
+          {notification.title}
+        </p>
+        <p className="text-sm text-gray-500 mt-1 line-clamp-2 group-hover:text-gray-700">
+          {notification.message}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          {new Date(notification.createdAt).toLocaleString()}
+        </p>
+      </div>
+      {!notification.read && (
+        <div className="flex-shrink-0">
+          <div className="h-2.5 w-2.5 bg-primary-500 rounded-full ring-2 ring-primary-500/30"></div>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 const Notifications = () => {
   const dispatch = useDispatch();
@@ -18,10 +46,14 @@ const Notifications = () => {
     setIsOpen(false);
   };
 
+  const handleMarkAllAsRead = () => {
+    notifications.forEach(n => !n.read && dispatch(markNotificationAsRead(n._id)));
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -31,60 +63,75 @@ const Notifications = () => {
     return null;
   }
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none"
+        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 transition-colors duration-200"
+        aria-label="Notifications"
       >
         <BellIcon className="h-6 w-6" />
-        {notifications.some(n => !n.read) && (
-          <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white">
+            {unreadCount}
+          </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50">
-          <div className="px-4 py-2 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
-          </div>
-          
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500">No notifications</div>
-            ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification._id}
-                  onClick={() => handleNotificationClick(notification._id)}
-                  className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-start">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {notification.title}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(notification.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    {!notification.read && (
-                      <span className="ml-2 h-2 w-2 rounded-full bg-blue-500"></span>
-                    )}
-                  </div>
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Dropdown */}
+          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg py-2 z-50 ring-1 ring-black ring-opacity-5">
+            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500 transition-colors duration-200"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[32rem] overflow-y-auto overscroll-contain">
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-gray-500 text-sm">No notifications yet</p>
                 </div>
-              ))
-            )}
+              ) : (
+                <>
+                  {notifications.map((notification) => (
+                    <NotificationItem
+                      key={notification._id}
+                      notification={notification}
+                      onClick={() => handleNotificationClick(notification._id)}
+                    />
+                  ))}
+                  {unreadCount > 0 && (
+                    <div className="px-4 py-3 border-t border-gray-100">
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200"
+                      >
+                        Mark all as read
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 };
 
-export default Notifications; 
+export default Notifications;

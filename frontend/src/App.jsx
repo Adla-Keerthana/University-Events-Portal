@@ -3,13 +3,17 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import store from './store';
 import PrivateRoute from './components/routing/PrivateRoute';
+import AdminRoute from './components/routing/AdminRoute';
 import Navbar from './components/layout/Navbar';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Events from './pages/events/Events';
+import CreateEvent from './pages/events/CreateEvent';
 import Profile from './pages/user/Profile';
 import Notifications from './pages/user/Notifications';
+import About from './pages/about/About';
+import Contact from './pages/contact/Contact';
 import './App.css';
 
 const App = () => {
@@ -24,6 +28,16 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/events" element={<Events />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route
+                path="/events/create"
+                element={
+                  <PrivateRoute>
+                    <CreateEvent />
+                  </PrivateRoute>
+                }
+              />
               <Route
                 path="/profile"
                 element={

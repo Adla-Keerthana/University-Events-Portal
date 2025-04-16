@@ -6,6 +6,7 @@ export const register = createAsyncThunk(
     'auth/register',
     async (userData, { rejectWithValue }) => {
         try {
+            console.log('User data:', userData);
             const response = await api.post('/auth/register', userData);
             return response.data;
         } catch (error) {
@@ -195,4 +196,4 @@ const authSlice = createSlice({
 });
 
 export const { clearError } = authSlice.actions;
-export default authSlice.reducer; 
+export default authSlice.reducer;
