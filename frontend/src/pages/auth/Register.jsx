@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../store/slices/authSlice';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import './Register.css';
+import { toast } from 'react-toastify';
 
 const Register = () => {
   const dispatch = useDispatch();
@@ -15,10 +16,10 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student',
     department: '',
-    year: '',
-    avatar: null,
+    year: '1st',
+    studentId: '',
+    interests: [],
     acceptTerms: false
   });
 
@@ -32,26 +33,14 @@ const Register = () => {
   });
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    if (type === 'file') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: files[0]
-      }));
-    } else if (type === 'checkbox') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
 
-      if (name === 'password') {
-        checkPasswordStrength(value);
-      }
+    if (name === 'password') {
+      checkPasswordStrength(value);
     }
   };
 
@@ -65,26 +54,68 @@ const Register = () => {
     });
   };
 
+  const validateStep = () => {
+    switch (step) {
+      case 1:
+        if (!formData.name || !formData.email) {
+          toast.error('Please fill in all required fields');
+          return false;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          toast.error('Please enter a valid email address');
+          return false;
+        }
+        return true;
+      case 2:
+        if (!formData.password || !formData.confirmPassword) {
+          toast.error('Please fill in all required fields');
+          return false;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          return false;
+        }
+        if (formData.password.length < 8) {
+          toast.error('Password must be at least 8 characters long');
+          return false;
+        }
+        if (!/[A-Za-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+          toast.error('Password must contain both letters and numbers');
+          return false;
+        }
+        return true;
+      case 3:
+        if (!formData.acceptTerms) {
+          toast.error('Please accept the terms and conditions');
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = () => {
+    if (validateStep()) {
+      setStep(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    setStep(prev => prev - 1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (step < 3) {
-      setStep(step + 1);
-      return;
-    }
+    if (!validateStep()) return;
 
-    if (formData.password !== formData.confirmPassword) {
-      // Handle password mismatch
-      return;
-    }
-
-    const formDataToSend = new FormData();
-    Object.keys(formData).forEach(key => {
-      formDataToSend.append(key, formData[key]);
-    });
-
-    const result = await dispatch(register(formDataToSend));
-    if (!result.error) {
+    try {
+      const { confirmPassword, acceptTerms, ...userData } = formData;
+      await dispatch(register(userData)).unwrap();
+      toast.success('Registration successful! Please check your email for verification.');
       navigate('/login');
+    } catch (error) {
+      toast.error(error.message || 'Registration failed');
     }
   };
 
@@ -102,6 +133,7 @@ const Register = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 required
+                placeholder="Enter your full name"
               />
             </div>
             <div className="form-group">
@@ -113,124 +145,93 @@ const Register = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
+                placeholder="Enter your email"
               />
             </div>
           </div>
         );
       case 2:
         return (
-          <>
-            <div className="register-grid">
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  className="form-input"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                />
-                <div className="password-requirements">
-                  <ul className="requirement-list">
-                    {Object.entries(passwordStrength).map(([key, met]) => (
-                      <li key={key} className={`requirement-item ${met ? 'requirement-met' : 'requirement-unmet'}`}>
-                        {met ? <CheckCircleIcon /> : <XCircleIcon />}
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Confirm Password</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  className="form-input"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required
-                />
+          <div className="register-grid">
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                type="password"
+                name="password"
+                className="form-input"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                placeholder="Enter your password"
+              />
+              <div className="password-requirements">
+                <p className="requirement-text">Password Requirements:</p>
+                <ul className="requirement-list">
+                  <li className={`requirement-item ${formData.password.length >= 8 ? 'requirement-met' : 'requirement-unmet'}`}>
+                    {formData.password.length >= 8 ? <CheckCircleIcon className="requirement-icon" /> : <XCircleIcon className="requirement-icon" />}
+                    At least 8 characters
+                  </li>
+                  <li className={`requirement-item ${/[A-Za-z]/.test(formData.password) ? 'requirement-met' : 'requirement-unmet'}`}>
+                    {/[A-Za-z]/.test(formData.password) ? <CheckCircleIcon className="requirement-icon" /> : <XCircleIcon className="requirement-icon" />}
+                    Contains letters
+                  </li>
+                  <li className={`requirement-item ${/[0-9]/.test(formData.password) ? 'requirement-met' : 'requirement-unmet'}`}>
+                    {/[0-9]/.test(formData.password) ? <CheckCircleIcon className="requirement-icon" /> : <XCircleIcon className="requirement-icon" />}
+                    Contains numbers
+                  </li>
+                </ul>
               </div>
             </div>
-          </>
+            <div className="form-group">
+              <label className="form-label">Confirm Password</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                className="form-input"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                required
+                placeholder="Confirm your password"
+              />
+            </div>
+          </div>
         );
       case 3:
         return (
-          <>
-            <div className="avatar-upload">
-              <div className="avatar-preview">
-                {formData.avatar ? (
-                  <img src={URL.createObjectURL(formData.avatar)} alt="Preview" />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                )}
-              </div>
+          <div className="register-grid">
+            <div className="form-group">
+              <label className="form-label">Department</label>
               <input
-                type="file"
-                name="avatar"
-                id="avatar"
-                className="avatar-input"
+                type="text"
+                name="department"
+                className="form-input"
+                value={formData.department}
                 onChange={handleInputChange}
-                accept="image/*"
               />
-              <label htmlFor="avatar" className="avatar-label">
-                Choose profile picture
-              </label>
-              {formData.avatar && (
-                <div className="avatar-actions">
-                  <button
-                    type="button"
-                    className="avatar-action-btn"
-                    onClick={() => setFormData(prev => ({ ...prev, avatar: null }))}
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
             </div>
-            <div className="register-grid">
-              <div className="form-group">
-                <label className="form-label">Role</label>
-                <select
-                  name="role"
-                  className="form-input"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="student">Student</option>
-                  <option value="faculty">Faculty</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Department</label>
-                <input
-                  type="text"
-                  name="department"
-                  className="form-input"
-                  value={formData.department}
-                  onChange={handleInputChange}
-                  required={formData.role === 'student' || formData.role === 'faculty'}
-                />
-              </div>
-              {formData.role === 'student' && (
-                <div className="form-group">
-                  <label className="form-label">Year</label>
-                  <input
-                    type="text"
-                    name="year"
-                    className="form-input"
-                    value={formData.year}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              )}
+            <div className="form-group">
+              <label className="form-label">Year</label>
+              <select
+                name="year"
+                className="form-input"
+                value={formData.year}
+                onChange={handleInputChange}
+              >
+                <option value="1st">1st Year</option>
+                <option value="2nd">2nd Year</option>
+                <option value="3rd">3rd Year</option>
+                <option value="4th">4th Year</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Student ID</label>
+              <input
+                type="text"
+                name="studentId"
+                className="form-input"
+                value={formData.studentId}
+                onChange={handleInputChange}
+              />
             </div>
             <div className="terms-checkbox">
               <input
@@ -246,7 +247,7 @@ const Register = () => {
                 <Link to="/privacy" className="terms-link">Privacy Policy</Link>
               </label>
             </div>
-          </>
+          </div>
         );
       default:
         return null;
@@ -254,48 +255,64 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h2>Create Account</h2>
-          <p>Join our community today</p>
-        </div>
-
+    <div className="register-container">
+      <div className="register-form">
+        <h2 className="register-title">Create your account</h2>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${(step / 3) * 100}%` }} />
         </div>
-
         <div className="step-indicators">
-          {[1, 2, 3].map((number) => (
+          {[1, 2, 3].map((stepNumber) => (
             <div
-              key={number}
-              className={`step ${step === number ? 'active' : ''} ${step > number ? 'completed' : ''}`}
+              key={stepNumber}
+              className={`step ${stepNumber < step ? 'completed' : stepNumber === step ? 'active' : ''}`}
             >
-              <div className="step-number">{number}</div>
-              <span className="step-label">
-                {number === 1 ? 'Basic Info' : number === 2 ? 'Security' : 'Profile'}
-              </span>
+              <div className="step-number">{stepNumber}</div>
+              <div className="step-label">
+                {stepNumber === 1 ? 'Basic Info' : stepNumber === 2 ? 'Password' : 'Additional Info'}
+              </div>
             </div>
           ))}
         </div>
-
-        {error && <div className="error-message">{error}</div>}
-
         <form onSubmit={handleSubmit}>
           {renderStep()}
-
-          <div className="auth-footer">
-            <button type="submit" className="submit-button" disabled={loading}>
-              {loading ? 'Creating Account...' : step < 3 ? 'Next' : 'Create Account'}
-            </button>
-            <p>
-              Already have an account?{' '}
-              <Link to="/login" className="auth-link">
-                Sign in
-              </Link>
-            </p>
+          <div className="form-actions">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={handlePrevious}
+                className="action-button secondary"
+              >
+                Previous
+              </button>
+            )}
+            {step < 3 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="action-button primary"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="action-button primary"
+              >
+                {loading ? 'Registering...' : 'Register'}
+              </button>
+            )}
           </div>
         </form>
+        <div className="auth-footer">
+          <p>
+            Already have an account?{' '}
+            <Link to="/login" className="auth-link">
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
-import { useState } from 'react';
+import { getProfile } from '../../store/slices/authSlice';
 import {
   Bars3Icon,
   XMarkIcon,
@@ -13,16 +14,24 @@ import {
 import './Navbar.css';
 
 const Navbar = () => {
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      dispatch(getProfile());
+    }
+  }, [dispatch, isAuthenticated, user]);
 
   const handleLogout = () => {
     dispatch(logout());
     setIsMenuOpen(false);
     setIsDropdownOpen(false);
+    navigate('/login');
   };
 
   const navLinks = [
@@ -69,31 +78,31 @@ const Navbar = () => {
                   {user?.avatar ? (
                     <img src={user.avatar} alt={user.name} />
                   ) : (
-                    user?.name?.charAt(0)
+                    <UserCircleIcon className="avatar-icon" />
                   )}
                 </div>
-                <span>{user?.name}</span>
+                <span>{user?.name || 'User'}</span>
               </button>
 
               {isDropdownOpen && (
                 <div className="dropdown-menu">
                   <Link to="/profile" className="dropdown-item" onClick={() => setIsDropdownOpen(false)}>
-                    <UserCircleIcon />
+                    <UserCircleIcon className="dropdown-icon" />
                     Profile
                   </Link>
                   <Link to="/notifications" className="dropdown-item" onClick={() => setIsDropdownOpen(false)}>
-                    <BellIcon />
+                    <BellIcon className="dropdown-icon" />
                     Notifications
                   </Link>
                   {user?.role === 'admin' && (
                     <Link to="/settings" className="dropdown-item" onClick={() => setIsDropdownOpen(false)}>
-                      <CogIcon />
+                      <CogIcon className="dropdown-icon" />
                       Settings
                     </Link>
                   )}
                   <div className="dropdown-divider" />
                   <button className="dropdown-item" onClick={handleLogout}>
-                    <ArrowRightOnRectangleIcon />
+                    <ArrowRightOnRectangleIcon className="dropdown-icon" />
                     Logout
                   </button>
                 </div>

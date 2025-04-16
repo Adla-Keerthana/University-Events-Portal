@@ -1,18 +1,14 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createEvent } from '../../store/slices/eventSlice';
-import {
-  ArrowLeftIcon,
-  PlusIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';
 import './CreateEvent.css';
 
 const CreateEvent = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.events);
+  const { loading } = useSelector((state) => state.events);
   const { user } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
@@ -26,8 +22,7 @@ const CreateEvent = () => {
     venue: {
       name: '',
       location: '',
-      capacity: '',
-      facilities: []
+      capacity: ''
     },
     maxParticipants: '',
     registrationFee: {
@@ -35,8 +30,17 @@ const CreateEvent = () => {
       currency: 'INR',
       paymentDeadline: ''
     },
-    rules: ['']
+    rules: [],
+    committeeMembers: [],
+    status: 'upcoming',
+    image: 'default-event.jpg'
   });
+
+  const categories = [
+    'Chess', 'Basketball', 'Swimming', 'Athletics', 'Cricket', 
+    'Badminton', 'Table Tennis', 'Hackathons', 'Technical', 
+    'Cultural', 'Academic'
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,78 +53,58 @@ const CreateEvent = () => {
           [child]: value
         }
       }));
+    } else if (name === 'rules') {
+      setFormData(prev => ({
+        ...prev,
+        rules: value.split('\n').map(rule => ({
+          title: 'Rule',
+          description: rule.trim()
+        })).filter(rule => rule.description)
+      }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
-  };
-
-  const handleRuleChange = (index, value) => {
-    const newRules = [...formData.rules];
-    newRules[index] = value;
-    setFormData(prev => ({ ...prev, rules: newRules }));
-  };
-
-  const addRule = () => {
-    setFormData(prev => ({ ...prev, rules: [...prev.rules, ''] }));
-  };
-
-  const removeRule = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      rules: prev.rules.filter((_, i) => i !== index),
-    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const result = await dispatch(createEvent(formData));
-      if (!result.error) {
-        navigate('/events');
-      }
+      const eventData = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        registrationFee: {
+          ...formData.registrationFee,
+          amount: Number(formData.registrationFee.amount),
+          paymentDeadline: formData.registrationFee.paymentDeadline 
+            ? new Date(formData.registrationFee.paymentDeadline).toISOString()
+            : undefined
+        },
+        venue: {
+          ...formData.venue,
+          capacity: Number(formData.venue.capacity)
+        },
+        maxParticipants: Number(formData.maxParticipants),
+        organizer: user._id
+      };
+
+      await dispatch(createEvent(eventData)).unwrap();
+      toast.success('Event created successfully!');
+      navigate('/events');
     } catch (error) {
-      console.error('Error creating event:', error);
+      toast.error(error.message || 'Failed to create event');
     }
   };
 
-  const categories = [
-    'Chess', 'Basketball', 'Swimming', 'Athletics', 'Cricket', 
-    'Badminton', 'Table Tennis', 'Hackathons', 'Technical', 
-    'Cultural', 'Academic'
-  ];
-
-  if (!user || user.role !== 'committee_member') {
-    return (
-      <div className="error-container">
-        <h2>Access Denied</h2>
-        <p>You must be a committee member to create events.</p>
-        <button onClick={() => navigate('/events')} className="back-button">
-          <ArrowLeftIcon className="back-icon" />
-          Back to Events
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="create-event-container">
-      <div className="create-event-header">
-        <h2>Create New Event</h2>
-        <button onClick={() => navigate('/events')} className="back-button">
-          <ArrowLeftIcon className="back-icon" />
-          Back to Events
-        </button>
-      </div>
-
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
-
+      <h1 className="create-event-title">Create New Event</h1>
       <form onSubmit={handleSubmit} className="create-event-form">
         <div className="form-section">
-          <h3>Basic Information</h3>
+          <h2 className="section-title">Basic Information</h2>
           <div className="form-group">
             <label htmlFor="title">Event Title</label>
             <input
@@ -130,10 +114,8 @@ const CreateEvent = () => {
               value={formData.title}
               onChange={handleChange}
               required
-              placeholder="Enter event title"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="description">Description</label>
             <textarea
@@ -142,11 +124,8 @@ const CreateEvent = () => {
               value={formData.description}
               onChange={handleChange}
               required
-              rows={4}
-              placeholder="Enter event description"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="category">Category</label>
             <select
@@ -165,8 +144,8 @@ const CreateEvent = () => {
         </div>
 
         <div className="form-section">
-          <h3>Date and Time</h3>
-          <div className="form-grid">
+          <h2 className="section-title">Date and Time</h2>
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="startDate">Start Date</label>
               <input
@@ -189,6 +168,8 @@ const CreateEvent = () => {
                 required
               />
             </div>
+          </div>
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="startTime">Start Time</label>
               <input
@@ -215,7 +196,7 @@ const CreateEvent = () => {
         </div>
 
         <div className="form-section">
-          <h3>Venue Information</h3>
+          <h2 className="section-title">Venue Information</h2>
           <div className="form-group">
             <label htmlFor="venue.name">Venue Name</label>
             <input
@@ -225,10 +206,8 @@ const CreateEvent = () => {
               value={formData.venue.name}
               onChange={handleChange}
               required
-              placeholder="Enter venue name"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="venue.location">Venue Location</label>
             <input
@@ -238,10 +217,8 @@ const CreateEvent = () => {
               value={formData.venue.location}
               onChange={handleChange}
               required
-              placeholder="Enter venue location"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="venue.capacity">Venue Capacity</label>
             <input
@@ -251,13 +228,13 @@ const CreateEvent = () => {
               value={formData.venue.capacity}
               onChange={handleChange}
               required
-              placeholder="Enter venue capacity"
+              min="1"
             />
           </div>
         </div>
 
         <div className="form-section">
-          <h3>Registration Details</h3>
+          <h2 className="section-title">Registration Details</h2>
           <div className="form-group">
             <label htmlFor="maxParticipants">Maximum Participants</label>
             <input
@@ -267,10 +244,9 @@ const CreateEvent = () => {
               value={formData.maxParticipants}
               onChange={handleChange}
               required
-              placeholder="Enter maximum number of participants"
+              min="1"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="registrationFee.amount">Registration Fee (INR)</label>
             <input
@@ -279,14 +255,14 @@ const CreateEvent = () => {
               name="registrationFee.amount"
               value={formData.registrationFee.amount}
               onChange={handleChange}
-              placeholder="Enter registration fee"
+              required
+              min="0"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="registrationFee.paymentDeadline">Payment Deadline</label>
             <input
-              type="date"
+              type="datetime-local"
               id="registrationFee.paymentDeadline"
               name="registrationFee.paymentDeadline"
               value={formData.registrationFee.paymentDeadline}
@@ -296,41 +272,32 @@ const CreateEvent = () => {
         </div>
 
         <div className="form-section">
-          <h3>Event Rules</h3>
-          {formData.rules.map((rule, index) => (
-            <div key={index} className="rule-group">
-              <input
-                type="text"
-                value={rule}
-                onChange={(e) => handleRuleChange(index, e.target.value)}
-                placeholder="Enter event rule"
-              />
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={() => removeRule(index)}
-                  className="remove-rule-button"
-                >
-                  <TrashIcon className="remove-icon" />
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addRule}
-            className="add-rule-button"
-          >
-            <PlusIcon className="add-icon" />
-            Add Rule
-          </button>
+          <h2 className="section-title">Rules</h2>
+          <div className="form-group">
+            <label htmlFor="rules">Event Rules (One rule per line)</label>
+            <textarea
+              id="rules"
+              name="rules"
+              value={formData.rules.map(rule => rule.description).join('\n')}
+              onChange={handleChange}
+              rows="5"
+              placeholder="Enter event rules, one per line"
+            />
+          </div>
         </div>
 
         <div className="form-actions">
           <button
+            type="button"
+            onClick={() => navigate('/events')}
+            className="cancel-button"
+          >
+            Cancel
+          </button>
+          <button
             type="submit"
-            className="submit-button"
             disabled={loading}
+            className="submit-button"
           >
             {loading ? 'Creating...' : 'Create Event'}
           </button>

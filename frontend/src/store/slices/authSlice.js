@@ -19,6 +19,9 @@ export const login = createAsyncThunk(
     async (credentials, { rejectWithValue }) => {
         try {
             const response = await api.post('/auth/login', credentials);
+            const { token, user } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response.data);
@@ -42,10 +45,18 @@ export const getProfile = createAsyncThunk(
     'auth/getProfile',
     async (_, { rejectWithValue }) => {
         try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return rejectWithValue({ message: 'No token found' });
+            }
             const response = await api.get('/auth/profile');
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+            return rejectWithValue(error.response?.data || { message: 'Failed to get profile' });
         }
     }
 );
@@ -99,7 +110,7 @@ export const resetPassword = createAsyncThunk(
 );
 
 const initialState = {
-    user: null,
+    user: JSON.parse(localStorage.getItem('user')) || null,
     token: localStorage.getItem('token'),
     isAuthenticated: !!localStorage.getItem('token'),
     loading: false,
@@ -123,7 +134,8 @@ const authSlice = createSlice({
             })
             .addCase(register.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload;
+                state.user = action.payload.user;
+                state.token = action.payload.token;
                 state.isAuthenticated = true;
             })
             .addCase(register.rejected, (state, action) => {
@@ -137,7 +149,8 @@ const authSlice = createSlice({
             })
             .addCase(login.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload;
+                state.user = action.payload.user;
+                state.token = action.payload.token;
                 state.isAuthenticated = true;
             })
             .addCase(login.rejected, (state, action) => {
@@ -150,6 +163,7 @@ const authSlice = createSlice({
                 state.token = null;
                 state.isAuthenticated = false;
                 localStorage.removeItem('token');
+                localStorage.removeItem('user');
             })
             // Get Profile
             .addCase(getProfile.pending, (state) => {

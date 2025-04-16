@@ -3,7 +3,7 @@ import authReducer from './slices/authSlice';
 import eventReducer from './slices/eventSlice';
 import notificationReducer from './slices/notificationSlice';
 
-export const store = configureStore({
+const store = configureStore({
     reducer: {
         auth: authReducer,
         events: eventReducer,
@@ -13,4 +13,6 @@ export const store = configureStore({
         getDefaultMiddleware({
             serializableCheck: false
         })
-}); 
+});
+
+export default store; 

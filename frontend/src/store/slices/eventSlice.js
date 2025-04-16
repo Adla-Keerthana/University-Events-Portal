@@ -9,7 +9,7 @@ export const getEvents = createAsyncThunk(
             const response = await api.get('/events', { params: filters });
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch events');
         }
     }
 );
@@ -21,7 +21,7 @@ export const getEventById = createAsyncThunk(
             const response = await api.get(`/events/${id}`);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch event');
         }
     }
 );
@@ -33,7 +33,7 @@ export const createEvent = createAsyncThunk(
             const response = await api.post('/events', eventData);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to create event');
         }
     }
 );
@@ -45,7 +45,7 @@ export const updateEvent = createAsyncThunk(
             const response = await api.put(`/events/${id}`, eventData);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to update event');
         }
     }
 );
@@ -57,7 +57,7 @@ export const deleteEvent = createAsyncThunk(
             await api.delete(`/events/${id}`);
             return id;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to delete event');
         }
     }
 );
@@ -69,7 +69,7 @@ export const registerForEvent = createAsyncThunk(
             const response = await api.post(`/events/${eventId}/register`);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to register for event');
         }
     }
 );
@@ -78,10 +78,10 @@ export const cancelRegistration = createAsyncThunk(
     'events/cancelRegistration',
     async (eventId, { rejectWithValue }) => {
         try {
-            const response = await api.post(`/events/${eventId}/cancel-registration`);
+            const response = await api.delete(`/events/${eventId}/register`);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to cancel registration');
         }
     }
 );
@@ -90,10 +90,10 @@ export const updateEventResults = createAsyncThunk(
     'events/updateEventResults',
     async ({ eventId, results }, { rejectWithValue }) => {
         try {
-            const response = await api.put(`/events/${eventId}/results`, { results });
+            const response = await api.post(`/events/${eventId}/results`, { results });
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data?.message || 'Failed to update results');
         }
     }
 );
@@ -102,7 +102,8 @@ const initialState = {
     events: [],
     currentEvent: null,
     loading: false,
-    error: null
+    error: null,
+    success: false,
 };
 
 const eventSlice = createSlice({
@@ -112,8 +113,8 @@ const eventSlice = createSlice({
         clearError: (state) => {
             state.error = null;
         },
-        clearCurrentEvent: (state) => {
-            state.currentEvent = null;
+        clearSuccess: (state) => {
+            state.success = false;
         }
     },
     extraReducers: (builder) => {
@@ -129,7 +130,7 @@ const eventSlice = createSlice({
             })
             .addCase(getEvents.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to fetch events';
+                state.error = action.payload;
             })
             // Get Event by ID
             .addCase(getEventById.pending, (state) => {
@@ -142,39 +143,42 @@ const eventSlice = createSlice({
             })
             .addCase(getEventById.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to fetch event';
+                state.error = action.payload;
             })
             // Create Event
             .addCase(createEvent.pending, (state) => {
                 state.loading = true;
                 state.error = null;
+                state.success = false;
             })
             .addCase(createEvent.fulfilled, (state, action) => {
                 state.loading = false;
-                state.events.push(action.payload);
+                state.events.unshift(action.payload);
+                state.success = true;
             })
             .addCase(createEvent.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to create event';
+                state.error = action.payload;
+                state.success = false;
             })
             // Update Event
             .addCase(updateEvent.pending, (state) => {
                 state.loading = true;
                 state.error = null;
+                state.success = false;
             })
             .addCase(updateEvent.fulfilled, (state, action) => {
                 state.loading = false;
-                const index = state.events.findIndex(event => event._id === action.payload._id);
-                if (index !== -1) {
-                    state.events[index] = action.payload;
-                }
-                if (state.currentEvent?._id === action.payload._id) {
-                    state.currentEvent = action.payload;
-                }
+                state.events = state.events.map((event) =>
+                    event._id === action.payload._id ? action.payload : event
+                );
+                state.currentEvent = action.payload;
+                state.success = true;
             })
             .addCase(updateEvent.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to update event';
+                state.error = action.payload;
+                state.success = false;
             })
             // Delete Event
             .addCase(deleteEvent.pending, (state) => {
@@ -183,14 +187,11 @@ const eventSlice = createSlice({
             })
             .addCase(deleteEvent.fulfilled, (state, action) => {
                 state.loading = false;
-                state.events = state.events.filter(event => event._id !== action.payload);
-                if (state.currentEvent?._id === action.payload) {
-                    state.currentEvent = null;
-                }
+                state.events = state.events.filter((event) => event._id !== action.payload);
             })
             .addCase(deleteEvent.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to delete event';
+                state.error = action.payload;
             })
             // Register for Event
             .addCase(registerForEvent.pending, (state) => {
@@ -199,17 +200,14 @@ const eventSlice = createSlice({
             })
             .addCase(registerForEvent.fulfilled, (state, action) => {
                 state.loading = false;
-                const index = state.events.findIndex(event => event._id === action.payload._id);
-                if (index !== -1) {
-                    state.events[index] = action.payload;
-                }
-                if (state.currentEvent?._id === action.payload._id) {
-                    state.currentEvent = action.payload;
-                }
+                state.currentEvent = action.payload;
+                state.events = state.events.map((event) =>
+                    event._id === action.payload._id ? action.payload : event
+                );
             })
             .addCase(registerForEvent.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to register for event';
+                state.error = action.payload;
             })
             // Cancel Registration
             .addCase(cancelRegistration.pending, (state) => {
@@ -218,17 +216,14 @@ const eventSlice = createSlice({
             })
             .addCase(cancelRegistration.fulfilled, (state, action) => {
                 state.loading = false;
-                const index = state.events.findIndex(event => event._id === action.payload._id);
-                if (index !== -1) {
-                    state.events[index] = action.payload;
-                }
-                if (state.currentEvent?._id === action.payload._id) {
-                    state.currentEvent = action.payload;
-                }
+                state.currentEvent = action.payload;
+                state.events = state.events.map((event) =>
+                    event._id === action.payload._id ? action.payload : event
+                );
             })
             .addCase(cancelRegistration.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to cancel registration';
+                state.error = action.payload;
             })
             // Update Event Results
             .addCase(updateEventResults.pending, (state) => {
@@ -237,20 +232,17 @@ const eventSlice = createSlice({
             })
             .addCase(updateEventResults.fulfilled, (state, action) => {
                 state.loading = false;
-                const index = state.events.findIndex(event => event._id === action.payload._id);
-                if (index !== -1) {
-                    state.events[index] = action.payload;
-                }
-                if (state.currentEvent?._id === action.payload._id) {
-                    state.currentEvent = action.payload;
-                }
+                state.currentEvent = action.payload;
+                state.events = state.events.map((event) =>
+                    event._id === action.payload._id ? action.payload : event
+                );
             })
             .addCase(updateEventResults.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload?.message || 'Failed to update event results';
+                state.error = action.payload;
             });
     }
 });
 
-export const { clearError, clearCurrentEvent } = eventSlice.actions;
+export const { clearError, clearSuccess } = eventSlice.actions;
 export default eventSlice.reducer; 

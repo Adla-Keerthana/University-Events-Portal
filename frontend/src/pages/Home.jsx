@@ -1,7 +1,11 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import './Home.css';
+import { useSelector } from 'react-redux';
 
 const Home = () => {
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
   return (
     <div className="home-container">
       {/* Hero Section */}
@@ -15,12 +19,16 @@ const Home = () => {
             Discover, participate, and create amazing university events. Connect with your campus community and make the most of your university experience.
           </p>
           <div className="hero-buttons fade-in-delay">
-            <Link to="/events" className="button primary">
-              Browse Events
-            </Link>
-            <Link to="/auth/register" className="button secondary">
-              Sign Up
-            </Link>
+            {!isAuthenticated && (
+              <>
+                <Link to="/auth/register" className="button primary">
+                  Sign Up
+                </Link>
+                <Link to="/auth/login" className="button secondary">
+                  Sign In
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

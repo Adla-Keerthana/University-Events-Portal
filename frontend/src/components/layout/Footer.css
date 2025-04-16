@@ -1,29 +1,55 @@
 /* Footer Styles */
 .footer {
-  background: #1e293b;
+  background-color: #1e40af;
   color: white;
-  padding: 4rem 1rem 2rem;
+  padding: 3rem 0;
   margin-top: auto;
 }
 
-.footer-container {
+.footer .container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
-.footer-grid {
+.footer-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 3rem;
-  margin-bottom: 3rem;
+  gap: 2rem;
+  margin-bottom: 2rem;
 }
 
 /* Footer Sections */
 .footer-section h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #f8fafc;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.footer-section p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li {
+  margin-bottom: 0.5rem;
+}
+
+.footer-section ul li a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-section ul li a:hover {
+  color: #fff;
 }
 
 /* Quick Links */
@@ -169,11 +195,16 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .footer {
-    padding: 3rem 1rem 1.5rem;
+    padding: 2rem 0;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
-  .footer-grid {
-    gap: 2rem;
+  .footer-links {
+    justify-content: center;
   }
 
   .newsletter-form {
@@ -182,9 +213,5 @@
 
   .newsletter-button {
     width: 100%;
-  }
-
-  .social-links {
-    justify-content: center;
   }
 } 

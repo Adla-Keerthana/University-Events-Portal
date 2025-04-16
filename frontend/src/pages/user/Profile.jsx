@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfile, updateProfile } from '../../store/slices/authSlice';
 import {
@@ -13,7 +13,7 @@ import './Profile.css';
 
 const Profile = () => {
   const dispatch = useDispatch();
-  const { user, loading } = useSelector((state) => state.auth);
+  const { user, loading, error } = useSelector((state) => state.auth);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -25,7 +25,10 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    dispatch(getProfile());
+    const token = localStorage.getItem('token');
+    if (token) {
+      dispatch(getProfile());
+    }
   }, [dispatch]);
 
   useEffect(() => {
@@ -64,16 +67,29 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="loading-spinner">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500 text-center">
+          <p className="text-xl font-semibold">Error</p>
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="profile-container">
-        <div className="error-message">Please sign in to view your profile</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-xl font-semibold">Please sign in to view your profile</p>
+        </div>
       </div>
     );
   }

@@ -14,12 +14,16 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please add a valid email']
+      match: [
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        'Please add a valid email'
+      ]
     },
     password: {
       type: String,
       required: [true, 'Please add a password'],
-      minlength: [6, 'Password must be at least 6 characters']
+      minlength: [8, 'Password must be at least 8 characters'],
+      select: false
     },
     role: {
       type: String,
@@ -28,11 +32,19 @@ const userSchema = new mongoose.Schema(
     },
     department: {
       type: String,
-      trim: true
+      trim: true,
+      default: ''
     },
     year: {
       type: String,
-      trim: true
+      enum: ['1st', '2nd', '3rd', '4th', 'Masters', 'PhD'],
+      default: '1st'
+    },
+    studentId: {
+      type: String,
+      trim: true,
+      sparse: true,
+      default: ''
     },
     interests: [{
       type: String,
@@ -51,11 +63,15 @@ const userSchema = new mongoose.Schema(
         type: String,
         enum: ['registered', 'attended', 'won', 'runner_up']
       },
-      date: Date
+      date: Date,
+      pointsEarned: {
+        type: Number,
+        default: 0
+      }
     }],
     committeePermissions: [{
       type: String,
-      enum: ['create_events', 'edit_events', 'delete_events', 'manage_participants', 'manage_venues']
+      enum: ['create_events', 'edit_events', 'delete_events', 'manage_participants', 'manage_venues', 'manage_committee']
     }],
     isEmailVerified: {
       type: Boolean,
@@ -66,6 +82,22 @@ const userSchema = new mongoose.Schema(
     avatar: {
       type: String,
       default: 'default-avatar.png'
+    },
+    totalPoints: {
+      type: Number,
+      default: 0
+    },
+    achievements: [{
+      title: String,
+      description: String,
+      date: Date,
+      points: Number
+    }],
+    lastLogin: Date,
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'suspended'],
+      default: 'active'
     }
   },
   {
@@ -90,6 +122,24 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 // Method to check if user has specific committee permission
 userSchema.methods.hasPermission = function (permission) {
   return this.role === 'admin' || (this.role === 'committee_member' && this.committeePermissions.includes(permission));
+};
+
+// Method to check if user can manage committee members
+userSchema.methods.canManageCommittee = function () {
+  return this.role === 'admin' || (this.role === 'committee_member' && this.committeePermissions.includes('manage_committee'));
+};
+
+// Method to update participation history
+userSchema.methods.addParticipation = async function (eventId, role, status, points) {
+  this.participationHistory.push({
+    event: eventId,
+    role,
+    status,
+    date: new Date(),
+    pointsEarned: points
+  });
+  this.totalPoints += points;
+  await this.save();
 };
 
 const User = mongoose.model('User', userSchema);

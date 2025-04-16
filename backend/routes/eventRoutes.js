@@ -17,7 +17,7 @@ router.get('/', getEvents);
 router.get('/:id', getEventById);
 
 // Protected routes
-router.post('/', protect, committeeMember('create_events'), createEvent);
+router.post('/', protect, committeeMember, createEvent);
 router.put('/:id', protect, eventOrganizer, updateEvent);
 router.delete('/:id', protect, eventOrganizer, deleteEvent);
 
