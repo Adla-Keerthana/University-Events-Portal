@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../../store/slices/authSlice';
-import { getProfile } from '../../store/slices/authSlice';
+import { logout, getProfile } from '../../store/slices/authSlice';
 import {
   Bars3Icon,
   XMarkIcon,
@@ -14,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Navbar = () => {
-  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,25 +41,23 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-primary-600 shadow-lg sticky top-0 z-50">
+    <nav className="bg-white text-primary-600 shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-16 items-center">
           {/* Logo */}
-          <Link to="/" className="flex items-center flex-shrink-0">
-            <AcademicCapIcon className="h-8 w-8 text-white" />
-            <span className="ml-2 text-white text-xl font-bold font-display">UniEvents</span>
+          <Link to="/" className="flex items-center space-x-2">
+            <AcademicCapIcon className="h-8 w-8" />
+            <span className="text-2xl font-bold tracking-wide">UniEvents</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-8">
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  location.pathname === link.path
-                    ? 'text-white border-b-2 border-white'
-                    : 'text-primary-100 hover:text-white'
+                className={`text-sm uppercase tracking-wider font-semibold hover:text-primary-500 transition duration-300 border-b-2 ${
+                  location.pathname === link.path ? 'border-primary-500' : 'border-transparent'
                 }`}
               >
                 {link.label}
@@ -68,109 +65,79 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Auth Section */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
+          {/* Auth Buttons */}
+          <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 text-white hover:text-primary-100 transition-colors duration-200"
+                  className="flex items-center space-x-2 focus:outline-none"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center border-2 border-primary-400">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full" />
-                    ) : (
-                      <UserCircleIcon className="w-6 h-6 text-white" />
-                    )}
-                  </div>
-                  <span className="text-sm font-medium">{user?.name || 'User'}</span>
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
+                  ) : (
+                    <UserCircleIcon className="w-8 h-8" />
+                  )}
+                  <span className="text-sm font-semibold">{user?.name || 'User'}</span>
                 </button>
-
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <UserCircleIcon className="w-5 h-5 mr-2" />
-                      Profile
-                    </Link>
-                    <Link
-                      to="/notifications"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <BellIcon className="w-5 h-5 mr-2" />
-                      Notifications
-                    </Link>
+                  <div className="absolute right-0 mt-3 w-48 bg-white rounded-lg shadow-lg py-2">
+                    <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">Profile</Link>
+                    <Link to="/notifications" className="block px-4 py-2 hover:bg-gray-100">Notifications</Link>
                     {user?.role === 'admin' && (
-                      <Link
-                        to="/settings"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <CogIcon className="w-5 h-5 mr-2" />
-                        Settings
-                      </Link>
+                      <Link to="/settings" className="block px-4 py-2 hover:bg-gray-100">Settings</Link>
                     )}
-                    <hr className="my-1 border-gray-200" />
                     <button
                       onClick={handleLogout}
-                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     >
-                      <ArrowRightOnRectangleIcon className="w-5 h-5 mr-2" />
                       Logout
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
+              <>
                 <Link
                   to="/login"
-                  className="text-white hover:text-primary-100 text-sm font-medium transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-semibold hover:bg-primary-500 hover:text-white rounded-full border border-primary-500 transition"
                 >
-                  Sign in
+                  Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-white text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  className="px-4 py-2 bg-primary-500 text-white rounded-full text-sm font-semibold hover:bg-primary-600 transition"
                 >
-                  Sign up
+                  Sign Up
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden items-center">
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-white hover:text-primary-100 p-2"
+              className="focus:outline-none text-primary-600"
             >
               {isMenuOpen ? (
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="h-8 w-8" />
               ) : (
-                <Bars3Icon className="h-6 w-6" />
+                <Bars3Icon className="h-8 w-8" />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
-        <div className="px-2 pt-2 pb-3 space-y-1">
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white px-2 pt-2 pb-4 space-y-2">
           {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                location.pathname === link.path
-                  ? 'text-white bg-primary-700'
-                  : 'text-primary-100 hover:text-white hover:bg-primary-700'
-              }`}
+              className="block text-primary-600 px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
               onClick={() => setIsMenuOpen(false)}
             >
               {link.label}
@@ -180,22 +147,22 @@ const Navbar = () => {
             <div className="mt-4 space-y-2">
               <Link
                 to="/login"
-                className="block w-full text-center px-3 py-2 rounded-md text-base font-medium text-white hover:bg-primary-700"
+                className="block w-full text-center border border-primary-500 text-primary-500 px-3 py-2 rounded-full text-sm font-semibold hover:bg-primary-500 hover:text-white"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Sign in
+                Sign In
               </Link>
               <Link
                 to="/register"
-                className="block w-full text-center px-3 py-2 rounded-md text-base font-medium bg-white text-primary-600 hover:bg-primary-50"
+                className="block w-full text-center bg-primary-500 text-white px-3 py-2 rounded-full text-sm font-semibold hover:bg-primary-600"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Sign up
+                Sign Up
               </Link>
             </div>
           )}
         </div>
-      </div>
+      )}
     </nav>
   );
 };
