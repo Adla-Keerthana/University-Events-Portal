@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createEvent } from '../../store/slices/eventSlice';
@@ -15,7 +15,8 @@ import {
 const CreateEvent = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
+  const { loading, error, success } = useSelector((state) => state.events);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -38,7 +39,13 @@ const CreateEvent = () => {
     organizer: user?._id || ''
   });
 
-  const [loading, setLoading] = useState(false);
+  // Check authentication on component mount
+  useEffect(() => {
+    if (!user || !token) {
+      toast.error('Please login to create an event');
+      navigate('/login');
+    }
+  }, [user, token, navigate]);
 
   const categories = [
     'Academic',
@@ -69,9 +76,13 @@ const CreateEvent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
+      // Check authentication first
+      if (!token) {
+        throw new Error('You must be logged in to create an event');
+      }
+
       // Validate user authentication
       if (!user?._id) {
         throw new Error('You must be logged in to create an event');
@@ -92,6 +103,7 @@ const CreateEvent = () => {
       formDataToSend.append('title', formData.title.trim());
       formDataToSend.append('description', formData.description.trim());
       formDataToSend.append('category', formData.category);
+      formDataToSend.append('organizer', user._id);
 
       // Format dates properly
       const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
@@ -167,8 +179,6 @@ const CreateEvent = () => {
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error(error.message || 'Failed to create event');
-    } finally {
-      setLoading(false);
     }
   };
 

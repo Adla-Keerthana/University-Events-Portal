@@ -28,26 +28,44 @@ export const getEventById = createAsyncThunk(
 
 export const createEvent = createAsyncThunk(
     'events/createEvent',
-    async (eventData, { rejectWithValue }) => {
+    async (eventData, { rejectWithValue, getState }) => {
         try {
+            // Get auth token from Redux state
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
             const response = await api.post('/events', eventData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`
                 }
             });
             return response.data;
         } catch (error) {
             console.error('Error in createEvent:', error);
-            return rejectWithValue(error.response?.data?.message || 'Failed to create event');
+            return rejectWithValue(error.response?.data?.message || error.message || 'Failed to create event');
         }
     }
 );
 
 export const updateEvent = createAsyncThunk(
     'events/updateEvent',
-    async ({ id, eventData }, { rejectWithValue }) => {
+    async ({ id, eventData }, { rejectWithValue, getState }) => {
         try {
-            const response = await api.put(`/events/${id}`, eventData);
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
+            const response = await api.put(`/events/${id}`, eventData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to update event');
@@ -57,9 +75,19 @@ export const updateEvent = createAsyncThunk(
 
 export const deleteEvent = createAsyncThunk(
     'events/deleteEvent',
-    async (id, { rejectWithValue }) => {
+    async (id, { rejectWithValue, getState }) => {
         try {
-            await api.delete(`/events/${id}`);
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
+            await api.delete(`/events/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             return id;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to delete event');
@@ -69,9 +97,19 @@ export const deleteEvent = createAsyncThunk(
 
 export const registerForEvent = createAsyncThunk(
     'events/registerForEvent',
-    async (eventId, { rejectWithValue }) => {
+    async (eventId, { rejectWithValue, getState }) => {
         try {
-            const response = await api.post(`/events/${eventId}/register`);
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
+            const response = await api.post(`/events/${eventId}/register`, {}, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to register for event');
@@ -81,9 +119,19 @@ export const registerForEvent = createAsyncThunk(
 
 export const cancelRegistration = createAsyncThunk(
     'events/cancelRegistration',
-    async (eventId, { rejectWithValue }) => {
+    async (eventId, { rejectWithValue, getState }) => {
         try {
-            const response = await api.delete(`/events/${eventId}/register`);
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
+            const response = await api.delete(`/events/${eventId}/register`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to cancel registration');
@@ -93,9 +141,19 @@ export const cancelRegistration = createAsyncThunk(
 
 export const updateEventResults = createAsyncThunk(
     'events/updateEventResults',
-    async ({ eventId, results }, { rejectWithValue }) => {
+    async ({ eventId, results }, { rejectWithValue, getState }) => {
         try {
-            const response = await api.post(`/events/${eventId}/results`, { results });
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
+            const response = await api.post(`/events/${eventId}/results`, { results }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to update results');
