@@ -45,46 +45,118 @@ export const getEventById = asyncHandler(async (req, res) => {
 // @route   POST /api/events
 // @access  Private/Committee Member
 export const createEvent = asyncHandler(async (req, res) => {
-    const {
-        title,
-        description,
-        category,
-        startDate,
-        endDate,
-        startTime,
-        endTime,
-        venue,
-        maxParticipants,
-        registrationFee,
-        rules,
-        committeeMembers
-    } = req.body;
+    try {
+        console.log('Request body:', req.body);
+        console.log('Authenticated user:', req.user);
 
-    // Check for venue conflicts
-    const event = new Event({
-        title,
-        description,
-        category,
-        startDate,
-        endDate,
-        startTime,
-        endTime,
-        venue,
-        maxParticipants,
-        registrationFee,
-        rules,
-        committeeMembers,
-        organizer: req.user._id
-    });
+        // Check if user is authenticated
+        if (!req.user?._id) {
+            res.status(401);
+            throw new Error('Not authorized, no token');
+        }
 
-    const conflict = await event.hasConflict();
-    if (conflict) {
-        res.status(400);
-        throw new Error('Venue is already booked for the specified time period');
+        // Parse JSON strings from FormData with error handling
+        let venue;
+        let registrationFee;
+
+        try {
+            venue = typeof req.body.venue === 'string' ? JSON.parse(req.body.venue) : req.body.venue;
+            registrationFee = typeof req.body.registrationFee === 'string' ? JSON.parse(req.body.registrationFee) : req.body.registrationFee;
+        } catch (error) {
+            console.error('JSON parsing error:', error);
+            res.status(400);
+            throw new Error('Invalid JSON data in venue or registration fee');
+        }
+
+        console.log('Parsed venue:', venue);
+        console.log('Parsed registrationFee:', registrationFee);
+
+        // Validate required fields
+        const requiredFields = {
+            title: req.body.title,
+            description: req.body.description,
+            category: req.body.category,
+            startDate: req.body.startDate,
+            endDate: req.body.endDate,
+            startTime: req.body.startTime,
+            endTime: req.body.endTime,
+            'venue.name': venue?.name,
+            'venue.location': venue?.location,
+            'venue.capacity': venue?.capacity,
+            maxParticipants: req.body.maxParticipants,
+            'registrationFee.amount': registrationFee?.amount
+        };
+
+        const missingFields = Object.entries(requiredFields)
+            .filter(([_, value]) => !value && value !== 0)
+            .map(([key]) => key);
+
+        if (missingFields.length > 0) {
+            res.status(400);
+            throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+        }
+
+        // Parse dates
+        const parsedStartDate = new Date(req.body.startDate);
+        const parsedEndDate = new Date(req.body.endDate);
+
+        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+            res.status(400);
+            throw new Error('Invalid date format');
+        }
+
+        // Create event object
+        const event = new Event({
+            title: req.body.title.trim(),
+            description: req.body.description.trim(),
+            category: req.body.category,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
+            startTime: req.body.startTime,
+            endTime: req.body.endTime,
+            venue: {
+                name: venue.name.trim(),
+                location: venue.location.trim(),
+                capacity: parseInt(venue.capacity)
+            },
+            maxParticipants: parseInt(req.body.maxParticipants),
+            registrationFee: {
+                amount: parseFloat(registrationFee.amount),
+                currency: 'INR'
+            },
+            organizer: req.user._id,
+            status: 'upcoming'
+        });
+
+        // Validate numeric fields
+        if (isNaN(event.venue.capacity) || event.venue.capacity <= 0) {
+            res.status(400);
+            throw new Error('Venue capacity must be a positive number');
+        }
+
+        if (isNaN(event.maxParticipants) || event.maxParticipants <= 0) {
+            res.status(400);
+            throw new Error('Maximum participants must be a positive number');
+        }
+
+        if (isNaN(event.registrationFee.amount) || event.registrationFee.amount < 0) {
+            res.status(400);
+            throw new Error('Registration fee must be a non-negative number');
+        }
+
+        // Check for venue conflicts
+        const conflict = await event.hasConflict();
+        if (conflict) {
+            res.status(400);
+            throw new Error('Venue is already booked for the specified time period');
+        }
+
+        const createdEvent = await event.save();
+        res.status(201).json(createdEvent);
+    } catch (error) {
+        console.error('Error creating event:', error);
+        throw error;
     }
-
-    const createdEvent = await event.save();
-    res.status(201).json(createdEvent);
 });
 
 // @desc    Update event
@@ -257,4 +329,4 @@ export const removeCommitteeMember = asyncHandler(async (req, res) => {
 
     const updatedEvent = await event.save();
     res.json(updatedEvent);
-}); 
+});

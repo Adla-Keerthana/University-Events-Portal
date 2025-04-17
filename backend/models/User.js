@@ -48,7 +48,8 @@ const userSchema = new mongoose.Schema(
     },
     interests: [{
       type: String,
-      enum: ['Chess', 'Basketball', 'Swimming', 'Athletics', 'Cricket', 'Badminton', 'Table Tennis', 'Hackathons', 'Technical', 'Cultural', 'Academic']
+      enum: ['Academic', 'Sports', 'Cultural', 'Technical', 'Workshop', 'Other'],
+      required: false
     }],
     participationHistory: [{
       event: {
@@ -144,4 +145,4 @@ userSchema.methods.addParticipation = async function (eventId, role, status, poi
 
 const User = mongoose.model('User', userSchema);
 
-export default User; 
+export default User;

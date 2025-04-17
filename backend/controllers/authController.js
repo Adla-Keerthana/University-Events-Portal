@@ -14,24 +14,58 @@ const generateToken = (id) => {
 // @access  Public
 export const register = async (req, res) => {
     try {
-        const { name, email, password, role = 'student', department = '', year = '1st', studentId = '', interests = [] } = req.body;
+        console.log('Registration request body:', req.body);
+
+        const {
+            name,
+            email,
+            password,
+            role = 'student',
+            department = '',
+            year = '1st',
+            studentId = '',
+            interests = []
+        } = req.body;
+
+        // Validate required fields
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                message: 'Please provide all required fields',
+                details: {
+                    name: !name ? 'Name is required' : null,
+                    email: !email ? 'Email is required' : null,
+                    password: !password ? 'Password is required' : null
+                }
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'Please provide a valid email address' });
+        }
+
+        // Validate password strength
+        if (password.length < 8) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+        }
 
         // Check if user already exists
         const userExists = await User.findOne({ email });
         if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json({ message: 'User already exists with this email' });
         }
 
         // Create new user
         const user = await User.create({
-            name,
-            email,
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
             password,
             role,
-            department,
+            department: department.trim(),
             year,
-            studentId,
-            interests
+            studentId: studentId.trim(),
+            interests: interests.filter(interest => interest) // Remove empty values
         });
 
         // Generate token
@@ -45,17 +79,22 @@ export const register = async (req, res) => {
         );
 
         const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-        
-        await sendEmail({
-            to: email,
-            subject: 'Verify Your University Email',
-            html: `
-                <h1>Welcome to University Events!</h1>
-                <p>Please verify your email by clicking the link below:</p>
-                <a href="${verificationUrl}">Verify Email</a>
-                <p>This link will expire in 24 hours.</p>
-            `
-        });
+
+        try {
+            await sendEmail({
+                to: email,
+                subject: 'Verify Your University Email',
+                html: `
+                    <h1>Welcome to University Events!</h1>
+                    <p>Please verify your email by clicking the link below:</p>
+                    <a href="${verificationUrl}">Verify Email</a>
+                    <p>This link will expire in 24 hours.</p>
+                `
+            });
+        } catch (emailError) {
+            console.error('Error sending verification email:', emailError);
+            // Continue with registration even if email fails
+        }
 
         res.status(201).json({
             success: true,
@@ -68,12 +107,26 @@ export const register = async (req, res) => {
                 department: user.department,
                 year: user.year,
                 studentId: user.studentId,
-                interests: user.interests
+                interests: user.interests,
+                isEmailVerified: user.isEmailVerified
             }
         });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ 
+
+        // Handle mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const validationErrors = {};
+            for (let field in error.errors) {
+                validationErrors[field] = error.errors[field].message;
+            }
+            return res.status(400).json({
+                message: 'Validation error',
+                errors: validationErrors
+            });
+        }
+
+        res.status(500).json({
             message: 'Error registering user',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
@@ -137,7 +190,7 @@ export const login = async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'Error logging in',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
@@ -158,7 +211,7 @@ export const logout = asyncHandler(async (req, res) => {
 export const getProfile = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id)
         .populate('participationHistory.event', 'title category startDate endDate');
-    
+
     if (user) {
         res.json({
             _id: user._id,
@@ -188,7 +241,7 @@ export const getProfile = asyncHandler(async (req, res) => {
 // @access  Private
 export const updateProfile = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
-    
+
     if (user) {
         user.name = req.body.name || user.name;
         user.department = req.body.department || user.department;
@@ -226,7 +279,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id);
-        
+
         if (!user) {
             res.status(404);
             throw new Error('User not found');
@@ -234,7 +287,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 
         user.isEmailVerified = true;
         await user.save();
-        
+
         res.json({ message: 'Email verified successfully' });
     } catch (error) {
         res.status(401);
@@ -350,11 +403,11 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
 
     user.status = status;
     const updatedUser = await user.save();
-    
+
     res.json({
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
         status: updatedUser.status
     });
-}); 
+});

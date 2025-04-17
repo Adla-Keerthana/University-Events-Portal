@@ -3,52 +3,54 @@ import mongoose from 'mongoose';
 const eventSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: [true, 'Please provide a title for the event'],
-    trim: true
+    required: [false, 'Please provide a title for the event'],
+    trim: false
   },
   description: {
     type: String,
-    required: [true, 'Please provide a description for the event']
+    required: [false, 'Please provide a description for the event']
   },
   category: {
     type: String,
-    required: [true, 'Please provide a category for the event'],
-    enum: ['Chess', 'Basketball', 'Swimming', 'Athletics', 'Cricket', 'Badminton', 'Table Tennis', 'Hackathons', 'Technical', 'Cultural', 'Academic']
+    required: [false, 'Please provide a category for the event'],
+    enum: ['Academic', 'Sports', 'Cultural', 'Technical', 'Workshop', 'Other']
   },
   startDate: {
     type: Date,
-    required: [true, 'Please provide a start date for the event']
+    required: [false, 'Please provide a start date for the event']
   },
   endDate: {
     type: Date,
-    required: [true, 'Please provide an end date for the event']
+    required: [false, 'Please provide an end date for the event']
   },
   startTime: {
     type: String,
-    required: [true, 'Please provide a start time for the event']
+    required: [false, 'Please provide a start time for the event']
   },
   endTime: {
     type: String,
-    required: [true, 'Please provide an end time for the event']
+    required: [false, 'Please provide an end time for the event']
   },
   venue: {
     name: {
       type: String,
-      required: [true, 'Please provide a venue name']
+      required: [false, 'Please provide a venue name']
     },
     location: {
       type: String,
-      required: [true, 'Please provide a venue location']
+      required: [false, 'Please provide a venue location']
     },
     capacity: {
       type: Number,
-      required: [true, 'Please provide the venue capacity']
+      required: [false, 'Please provide the venue capacity'],
+      min: [1, 'Venue capacity must be at least 1']
     },
     facilities: [String]
   },
   maxParticipants: {
     type: Number,
-    required: [true, 'Please provide the maximum number of participants']
+    required: [false, 'Please provide the maximum number of participants'],
+    min: [1, 'Maximum participants must be at least 1']
   },
   currentParticipants: {
     type: Number,
@@ -68,7 +70,8 @@ const eventSchema = new mongoose.Schema({
   registrationFee: {
     amount: {
       type: Number,
-      required: [true, 'Please provide the registration fee amount']
+      required: [false, 'Please provide the registration fee amount'],
+      min: [0, 'Registration fee cannot be negative']
     },
     currency: {
       type: String,
@@ -88,7 +91,7 @@ const eventSchema = new mongoose.Schema({
   organizer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: [false, 'Please provide an organizer for the event']
   },
   committeeMembers: [{
     user: {
@@ -137,7 +140,7 @@ eventSchema.index({ startDate: 1, endDate: 1 });
 eventSchema.index({ 'venue.name': 1 });
 
 // Method to check if event conflicts with another event
-eventSchema.methods.hasConflict = async function() {
+eventSchema.methods.hasConflict = async function () {
   const Event = mongoose.model('Event');
   const conflictingEvent = await Event.findOne({
     _id: { $ne: this._id },
@@ -154,4 +157,4 @@ eventSchema.methods.hasConflict = async function() {
 
 const Event = mongoose.model('Event', eventSchema);
 
-export default Event; 
+export default Event;
