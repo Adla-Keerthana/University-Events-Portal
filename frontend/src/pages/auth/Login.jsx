@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../../store/slices/authSlice';
 import { toast } from 'react-toastify';
-import './Login.css';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -72,36 +71,38 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h2 className="auth-title">Sign in to your account</h2>
-          <p className="auth-subtitle">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+          <p className="mt-2 text-sm text-gray-600">
             Or{' '}
-            <Link to="/register" className="auth-link">
+            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
               create a new account
             </Link>
           </p>
         </div>
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="error-message">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {error}
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-red-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-red-800">{error}</span>
+              </div>
             </div>
           )}
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Email address</label>
-            <div className="input-group">
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+            <div className="relative">
               <input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="form-input input-with-icon"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
@@ -109,16 +110,16 @@ const Login = () => {
               />
             </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
-            <div className="input-group">
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+            <div className="relative">
               <input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                className="form-input input-with-icon"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
@@ -126,7 +127,7 @@ const Login = () => {
               />
               <button
                 type="button"
-                className="password-toggle"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700 focus:outline-none"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isSubmitting}
               >
@@ -135,18 +136,20 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="form-footer">
-            <div className="remember-me">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="checkbox-input"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 disabled={isSubmitting}
               />
-              <label htmlFor="remember-me">Remember me</label>
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                Remember me
+              </label>
             </div>
-            <Link to="/forgot-password" className="forgot-password">
+            <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
               Forgot your password?
             </Link>
           </div>
@@ -154,10 +157,13 @@ const Login = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`submit-button ${isSubmitting ? 'loading' : ''}`}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {isSubmitting ? (
-              <div className="loading-spinner" />
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
             ) : (
               'Sign in'
             )}
@@ -168,4 +174,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;

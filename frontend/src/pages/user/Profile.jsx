@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfile, updateProfile } from '../../store/slices/authSlice';
 import {
@@ -24,12 +24,16 @@ const Profile = () => {
     confirmPassword: '',
   });
 
-  useEffect(() => {
+  const fetchProfile = useCallback(async () => {
     const token = localStorage.getItem('token');
-    if (token) {
-      dispatch(getProfile());
+    if (token && !loading) {
+      await dispatch(getProfile());
     }
-  }, [dispatch]);
+  }, [dispatch, loading]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   useEffect(() => {
     if (user) {

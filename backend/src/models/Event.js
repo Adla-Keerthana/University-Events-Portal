@@ -1,20 +1,14 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const eventSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: [true, 'Please provide a title for the event'],
+        required: [true, 'Please provide a title'],
         trim: true
     },
     description: {
         type: String,
-        required: [true, 'Please provide a description for the event'],
-        trim: true
-    },
-    category: {
-        type: String,
-        required: [true, 'Please provide a category for the event'],
-        enum: ['Academic', 'Sports', 'Cultural', 'Technical', 'Workshop', 'Other']
+        required: [true, 'Please provide a description']
     },
     startDate: {
         type: Date,
@@ -43,26 +37,37 @@ const eventSchema = new mongoose.Schema({
         },
         capacity: {
             type: Number,
-            required: [true, 'Please provide a venue capacity']
+            required: [true, 'Please provide venue capacity']
         }
     },
     maxParticipants: {
         type: Number,
-        required: [true, 'Please provide the maximum number of participants']
+        required: [true, 'Please provide maximum participants']
+    },
+    category: {
+        type: String,
+        required: [true, 'Please provide a category'],
+        enum: ['Academic', 'Sports', 'Cultural', 'Technical', 'Workshop', 'Other']
+    },
+    image: {
+        data: {
+            type: String,
+            required: true
+        },
+        contentType: {
+            type: String,
+            required: true
+        }
     },
     registrationFee: {
         amount: {
             type: Number,
-            required: [true, 'Please provide a registration fee amount']
+            required: [true, 'Please provide registration fee amount']
         },
         currency: {
             type: String,
             default: 'INR'
         }
-    },
-    image: {
-        data: Buffer,
-        contentType: String
     },
     organizer: {
         type: mongoose.Schema.Types.ObjectId,
@@ -70,29 +75,35 @@ const eventSchema = new mongoose.Schema({
         required: true
     },
     participants: [{
-        user: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        },
-        registeredAt: {
-            type: Date,
-            default: Date.now
-        }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }],
     status: {
         type: String,
-        enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
+        enum: ['upcoming', 'ongoing', 'completed'],
         default: 'upcoming'
     }
 }, {
     timestamps: true
 });
 
-// Index for better query performance
-eventSchema.index({ startDate: 1, endDate: 1 });
-eventSchema.index({ category: 1 });
-eventSchema.index({ organizer: 1 });
+// Update status based on dates
+eventSchema.pre('save', function(next) {
+    const now = new Date();
+    const start = new Date(this.startDate);
+    const end = new Date(this.endDate);
+
+    if (now > end) {
+        this.status = 'completed';
+    } else if (now >= start && now <= end) {
+        this.status = 'ongoing';
+    } else {
+        this.status = 'upcoming';
+    }
+
+    next();
+});
 
 const Event = mongoose.model('Event', eventSchema);
 
-module.exports = Event; 
+export default Event; 

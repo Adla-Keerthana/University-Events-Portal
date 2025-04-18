@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { createEvent } from '../../store/slices/eventSlice';
+import { createEvent, getEvents } from '../../store/slices/eventSlice';
 import { toast } from 'react-toastify';
 import {
   CalendarIcon,
@@ -13,6 +13,7 @@ import {
   ArrowLeftIcon,
   TagIcon,
   ClockIcon,
+  TrophyIcon
 } from '@heroicons/react/24/outline';
 
 const CreateEvent = () => {
@@ -24,33 +25,18 @@ const CreateEvent = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    startDate: '',
-    endDate: '',
-    startTime: '',
-    endTime: '',
-    venue: {
-      name: '',
-      location: '',
-      capacity: ''
-    },
-    maxParticipants: '',
+    date: '',
+    time: '',
+    location: '',
     category: '',
-    image: null,
-    registrationFee: {
-      amount: ''
-    },
-    organizer: user?._id || ''
+    registrationFee: '',
+    maxParticipants: '',
+    points: '',
+    image: null
   });
 
   const [imagePreview, setImagePreview] = useState(null);
-
-  // Check authentication on component mount
-  useEffect(() => {
-    if (!user || !token) {
-      toast.error('Please login to create an event');
-      navigate('/login');
-    }
-  }, [user, token, navigate]);
+  const [errors, setErrors] = useState({});
 
   const categories = [
     'Academic',
@@ -65,7 +51,7 @@ const CreateEvent = () => {
     const { name, value, files } = e.target;
     if (name === 'image') {
       if (files[0]) {
-        setFormData(prev => ({ ...prev, [name]: files[0] }));
+        setFormData(prev => ({ ...prev, image: files[0] }));
         // Create image preview
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -73,75 +59,122 @@ const CreateEvent = () => {
         };
         reader.readAsDataURL(files[0]);
       }
-    } else if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.title) newErrors.title = "Title is required";
+    if (!formData.description) newErrors.description = "Description is required";
+    if (!formData.date) newErrors.date = "Date is required";
+    if (!formData.time) newErrors.time = "Time is required";
+    if (!formData.location) newErrors.location = "Location is required";
+    if (!formData.category) newErrors.category = "Category is required";
+    if (!formData.registrationFee) newErrors.registrationFee = "Registration fee is required";
+    if (!formData.maxParticipants) newErrors.maxParticipants = "Max participants is required";
+    if (!formData.points) newErrors.points = "Points is required";
+    if (!formData.image) newErrors.image = "Event image is required";
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Check if user is authenticated
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!user || !token) {
       toast.error('Please login to create an event');
       navigate('/login');
       return;
     }
 
+    // Validate form
+    if (!validateForm()) return;
+
     try {
-      const formDataToSend = new FormData();
+      // Create date and time string in ISO format
+      const dateTime = `${formData.date}T${formData.time}:00`;
+      const startDate = new Date(dateTime);
+      const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours for end time
       
-      // Add all form fields to FormData
-      Object.keys(formData).forEach(key => {
-        if (key === 'venue' || key === 'registrationFee') {
-          // Ensure the objects are properly formatted
-          const value = formData[key];
-          if (key === 'venue') {
-            formDataToSend.append(key, JSON.stringify({
-              name: value.name?.trim() || '',
-              location: value.location?.trim() || '',
-              capacity: Number(value.capacity) || 0
-            }));
-          } else if (key === 'registrationFee') {
-            formDataToSend.append(key, JSON.stringify({
-              amount: Number(value.amount) || 0,
-              currency: 'INR'
-            }));
-          }
-        } else if (key === 'maxParticipants') {
-          formDataToSend.append(key, Number(formData[key]) || 0);
-        } else if (key !== 'image') {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
-
-      // Add image if it exists
+      // Prepare form data for submission
+      const eventData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        startTime: formData.time,
+        endTime: new Date(endDate).toTimeString().split(' ')[0], // Format as HH:MM:SS
+        venue: {
+          name: formData.location.trim(),
+          location: formData.location.trim(),
+          capacity: Number(formData.maxParticipants)
+        },
+        maxParticipants: Number(formData.maxParticipants),
+        category: formData.category,
+        registrationFee: {
+          amount: Number(formData.registrationFee),
+          currency: 'INR'
+        },
+        organizer: user._id
+      };
+      
       if (formData.image) {
-        formDataToSend.append('image', formData.image);
-      }
+        // Convert image to base64
+        const reader = new FileReader();
+        reader.readAsDataURL(formData.image);
+        reader.onloadend = async () => {
+          const base64Image = reader.result;
+          const imageData = {
+            data: base64Image.split(',')[1], // Remove the data:image/jpeg;base64, prefix
+            contentType: formData.image.type
+          };
+          
+          eventData.image = imageData;
+          
+          console.log('Sending event data:', eventData);
+          
+          const result = await dispatch(createEvent(eventData)).unwrap();
 
-      console.log('Sending form data:', Object.fromEntries(formDataToSend));
+          if (result) {
+            // Fetch updated events list
+            await dispatch(getEvents()).unwrap();
+            
+            toast.success('Event created successfully!');
+            navigate('/events');
+          }
+        };
+      } else {
+        console.log('Sending event data:', eventData);
+        
+        const result = await dispatch(createEvent(eventData)).unwrap();
 
-      const result = await dispatch(createEvent(formDataToSend)).unwrap();
-
-      if (result) {
-        toast.success('Event created successfully!');
-        navigate('/events');
+        if (result) {
+          // Fetch updated events list
+          await dispatch(getEvents()).unwrap();
+          
+          toast.success('Event created successfully!');
+          navigate('/events');
+        }
       }
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error(error.message || 'Failed to create event');
     }
+  };
+
+  const getErrorClass = (fieldName) => {
+    return errors[fieldName] 
+      ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+      : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500';
   };
 
   return (
@@ -166,7 +199,7 @@ const CreateEvent = () => {
             <p className="text-primary-100 text-sm mt-1">Fill in the information below to create your event</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-6" encType="multipart/form-data">
             {/* Main form content */}
             <div className="space-y-8">
               {/* Basic Information Section */}
@@ -182,55 +215,16 @@ const CreateEvent = () => {
                         name="title"
                         value={formData.title}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('title')}`}
                         placeholder="Enter a descriptive title for your event"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <TagIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
-                    <div className="relative rounded-md shadow-sm">
-                      <select
-                        name="category"
-                        value={formData.category}
-                        onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                      >
-                        <option value="">Select category</option>
-                        {categories.map(category => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                      </select>
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <TagIcon className="h-5 w-5 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration Fee (INR) <span className="text-red-500">*</span></label>
-                    <div className="relative rounded-md shadow-sm">
-                      <input
-                        type="number"
-                        name="registrationFee.amount"
-                        value={formData.registrationFee.amount}
-                        onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                        min="0"
-                        step="0.01"
-                        placeholder="Enter amount (0 for free events)"
-                      />
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
-                      </div>
-                    </div>
+                    {errors.title && (
+                      <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                    )}
                   </div>
 
                   <div className="col-span-1 sm:col-span-2">
@@ -240,252 +234,230 @@ const CreateEvent = () => {
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
-                        rows="4"
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                        placeholder="Provide a detailed description of your event"
+                        rows={4}
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('description')}`}
+                        placeholder="Describe your event in detail"
                       />
-                      <div className="absolute top-3 left-0 pl-3 flex items-start pointer-events-none">
+                      <div className="absolute top-3 left-3 flex items-center pointer-events-none">
                         <DocumentTextIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">Include important details about what attendees can expect</p>
+                    {errors.description && (
+                      <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                    )}
                   </div>
-                </div>
-              </section>
 
-              {/* Date and Time Section */}
-              <section>
-                <h3 className="text-lg font-medium text-gray-900 pb-2 border-b border-gray-200 mb-4">Date & Time</h3>
-                
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date <span className="text-red-500">*</span></label>
                     <div className="relative rounded-md shadow-sm">
                       <input
                         type="date"
-                        name="startDate"
-                        value={formData.startDate}
+                        name="date"
+                        value={formData.date}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('date')}`}
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <CalendarIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
+                    {errors.date && (
+                      <p className="mt-1 text-sm text-red-600">{errors.date}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Time <span className="text-red-500">*</span></label>
                     <div className="relative rounded-md shadow-sm">
                       <input
                         type="time"
-                        name="startTime"
-                        value={formData.startTime}
+                        name="time"
+                        value={formData.time}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('time')}`}
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <ClockIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
+                    {errors.time && (
+                      <p className="mt-1 text-sm text-red-600">{errors.time}</p>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date <span className="text-red-500">*</span></label>
-                    <div className="relative rounded-md shadow-sm">
-                      <input
-                        type="date"
-                        name="endDate"
-                        value={formData.endDate}
-                        onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                      />
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <CalendarIcon className="h-5 w-5 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time <span className="text-red-500">*</span></label>
-                    <div className="relative rounded-md shadow-sm">
-                      <input
-                        type="time"
-                        name="endTime"
-                        value={formData.endTime}
-                        onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                      />
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <ClockIcon className="h-5 w-5 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Location Section */}
-              <section>
-                <h3 className="text-lg font-medium text-gray-900 pb-2 border-b border-gray-200 mb-4">Location & Capacity</h3>
-                
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Venue Name <span className="text-red-500">*</span></label>
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location <span className="text-red-500">*</span></label>
                     <div className="relative rounded-md shadow-sm">
                       <input
                         type="text"
-                        name="venue.name"
-                        value={formData.venue.name}
+                        name="location"
+                        value={formData.location}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                        placeholder="Name of the venue"
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('location')}`}
+                        placeholder="Enter event location"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MapPinIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
+                    {errors.location && (
+                      <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Venue Location <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
                     <div className="relative rounded-md shadow-sm">
-                      <input
-                        type="text"
-                        name="venue.location"
-                        value={formData.venue.location}
+                      <select
+                        name="category"
+                        value={formData.category}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                        placeholder="Address of the venue"
-                      />
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('category')}`}
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MapPinIcon className="h-5 w-5 text-gray-400" />
+                        <TrophyIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
+                    {errors.category && (
+                      <p className="mt-1 text-sm text-red-600">{errors.category}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Venue Capacity <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration Fee <span className="text-red-500">*</span></label>
                     <div className="relative rounded-md shadow-sm">
                       <input
                         type="number"
-                        name="venue.capacity"
-                        value={formData.venue.capacity}
+                        name="registrationFee"
+                        value={formData.registrationFee}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
-                        min="1"
-                        placeholder="Maximum capacity of venue"
+                        min="0"
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('registrationFee')}`}
+                        placeholder="Enter registration fee"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <UserGroupIcon className="h-5 w-5 text-gray-400" />
+                        <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
+                    {errors.registrationFee && (
+                      <p className="mt-1 text-sm text-red-600">{errors.registrationFee}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Participants <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Participants <span className="text-red-500">*</span></label>
                     <div className="relative rounded-md shadow-sm">
                       <input
                         type="number"
                         name="maxParticipants"
                         value={formData.maxParticipants}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
-                        required
                         min="1"
-                        placeholder="Number of allowed participants"
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('maxParticipants')}`}
+                        placeholder="Enter maximum number of participants"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <UserGroupIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">Cannot exceed venue capacity</p>
+                    {errors.maxParticipants && (
+                      <p className="mt-1 text-sm text-red-600">{errors.maxParticipants}</p>
+                    )}
                   </div>
-                </div>
-              </section>
 
-              {/* Image Upload Section */}
-              <section>
-                <h3 className="text-lg font-medium text-gray-900 pb-2 border-b border-gray-200 mb-4">Event Image</h3>
-                
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image <span className="text-red-500">*</span></label>
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                      <div className="space-y-1 text-center">
-                        <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="flex text-sm text-gray-600">
-                          <label htmlFor="image-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
-                            <span>Upload a file</span>
-                            <input
-                              id="image-upload"
-                              name="image"
-                              type="file"
-                              className="sr-only"
-                              onChange={handleChange}
-                              accept="image/*"
-                              required
-                            />
-                          </label>
-                          <p className="pl-1">or drag and drop</p>
-                        </div>
-                        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Points <span className="text-red-500">*</span></label>
+                    <div className="relative rounded-md shadow-sm">
+                      <input
+                        type="number"
+                        name="points"
+                        value={formData.points}
+                        onChange={handleChange}
+                        min="0"
+                        className={`block w-full rounded-md shadow-sm pl-10 ${getErrorClass('points')}`}
+                        placeholder="Enter points for participation"
+                      />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <TrophyIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
+                    {errors.points && (
+                      <p className="mt-1 text-sm text-red-600">{errors.points}</p>
+                    )}
                   </div>
-                  
-                  <div className="col-span-1">
-                    {imagePreview && (
-                      <div className="mt-2">
-                        <p className="block text-sm font-medium text-gray-700 mb-1">Preview</p>
-                        <div className="h-40 w-full overflow-hidden rounded-md">
-                          <img 
-                            src={imagePreview} 
-                            alt="Event preview" 
-                            className="h-full w-full object-cover" 
-                          />
-                        </div>
+
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Event Image <span className="text-red-500">*</span></label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                      <div className="space-y-1 text-center">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Preview"
+                              className="mx-auto h-32 w-32 object-cover rounded-md"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, image: null }));
+                                setImagePreview(null);
+                              }}
+                              className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                            <div className="flex text-sm text-gray-600">
+                              <label
+                                htmlFor="image-upload"
+                                className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                              >
+                                <span>Upload a file</span>
+                                <input
+                                  id="image-upload"
+                                  name="image"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleChange}
+                                  className="sr-only"
+                                />
+                              </label>
+                              <p className="pl-1">or drag and drop</p>
+                            </div>
+                            <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                          </>
+                        )}
                       </div>
+                    </div>
+                    {errors.image && (
+                      <p className="mt-1 text-sm text-red-600">{errors.image}</p>
                     )}
                   </div>
                 </div>
               </section>
 
-              {/* Form Actions */}
-              <div className="pt-5 border-t border-gray-200">
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/events')}
-                    className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Creating...
-                      </>
-                    ) : (
-                      'Create Event'
-                    )}
-                  </button>
-                </div>
+              {/* Submit button */}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Creating...' : 'Create Event'}
+                </button>
               </div>
             </div>
           </form>

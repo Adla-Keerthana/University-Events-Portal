@@ -29,17 +29,25 @@ export const getEventById = createAsyncThunk(
 // Change this in eventSlice.js createEvent thunk
 export const createEvent = createAsyncThunk(
     'events/createEvent',
-    async (eventData, { rejectWithValue }) => {
+    async (eventData, { rejectWithValue, getState }) => {
         try {
+            const { token } = getState().auth;
+            
+            if (!token) {
+                throw new Error('Not authorized, no token');
+            }
+            
             const response = await api.post('/events', eventData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Authorization': `Bearer ${token}`
                 }
             });
             return response.data;
         } catch (error) {
-            console.error('Error in createEvent:', error);
-            return rejectWithValue(error.response?.data?.message || error.message || 'Failed to create event');
+            console.error('Error creating event:', error);
+            return rejectWithValue(
+                error.response?.data?.message || error.message || 'Failed to create event'
+            );
         }
     }
 );

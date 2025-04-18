@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../store/slices/authSlice';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import './Register.css';
 import { toast } from 'react-toastify';
 
 const Register = () => {
@@ -16,6 +15,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'student', // Default role
     department: '',
     year: '1st',
     studentId: '',
@@ -46,7 +46,7 @@ const Register = () => {
 
   const checkPasswordStrength = (password) => {
     setPasswordStrength({
-      length: password.length >= 8,
+      length: password.length >= 6,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /[0-9]/.test(password),
@@ -57,7 +57,7 @@ const Register = () => {
   const validateStep = () => {
     switch (step) {
       case 1:
-        if (!formData.name || !formData.email) {
+        if (!formData.name || !formData.email || !formData.role) {
           toast.error('Please fill in all required fields');
           return false;
         }
@@ -75,12 +75,8 @@ const Register = () => {
           toast.error('Passwords do not match');
           return false;
         }
-        if (formData.password.length < 8) {
-          toast.error('Password must be at least 8 characters long');
-          return false;
-        }
-        if (!/[A-Za-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-          toast.error('Password must contain both letters and numbers');
+        if (formData.password.length < 6) {
+          toast.error('Password must be at least 6 characters long');
           return false;
         }
         return true;
@@ -110,12 +106,25 @@ const Register = () => {
     if (!validateStep()) return;
 
     try {
-      const { confirmPassword, acceptTerms, ...userData } = formData;
-      await dispatch(register(userData)).unwrap();
-      toast.success('Registration successful! Please check your email for verification.');
-      navigate('/login');
+      const userData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        role: formData.role
+      };
+
+      console.log('Sending registration data:', userData);
+      
+      const result = await dispatch(register(userData)).unwrap();
+      console.log('Registration response:', result);
+
+      if (result.token) {
+        toast.success('Registration successful!');
+        navigate('/profile');
+      }
     } catch (error) {
-      toast.error(error.message || 'Registration failed');
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -123,71 +132,78 @@ const Register = () => {
     switch (step) {
       case 1:
         return (
-          <div className="register-grid">
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Full Name</label>
               <input
                 type="text"
                 name="name"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.name}
                 onChange={handleInputChange}
                 required
                 placeholder="Enter your full name"
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Email</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
                 type="email"
                 name="email"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
                 placeholder="Enter your email"
               />
             </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Role</label>
+              <select
+                name="role"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={formData.role}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="student">Student</option>
+                <option value="committee_member">Committee Member</option>
+              </select>
+            </div>
           </div>
         );
       case 2:
         return (
-          <div className="register-grid">
-            <div className="form-group">
-              <label className="form-label">Password</label>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Password</label>
               <input
                 type="password"
                 name="password"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.password}
                 onChange={handleInputChange}
                 required
                 placeholder="Enter your password"
               />
-              <div className="password-requirements">
-                <p className="requirement-text">Password Requirements:</p>
-                <ul className="requirement-list">
-                  <li className={`requirement-item ${formData.password.length >= 8 ? 'requirement-met' : 'requirement-unmet'}`}>
-                    {formData.password.length >= 8 ? <CheckCircleIcon className="requirement-icon" /> : <XCircleIcon className="requirement-icon" />}
-                    At least 8 characters
-                  </li>
-                  <li className={`requirement-item ${/[A-Za-z]/.test(formData.password) ? 'requirement-met' : 'requirement-unmet'}`}>
-                    {/[A-Za-z]/.test(formData.password) ? <CheckCircleIcon className="requirement-icon" /> : <XCircleIcon className="requirement-icon" />}
-                    Contains letters
-                  </li>
-                  <li className={`requirement-item ${/[0-9]/.test(formData.password) ? 'requirement-met' : 'requirement-unmet'}`}>
-                    {/[0-9]/.test(formData.password) ? <CheckCircleIcon className="requirement-icon" /> : <XCircleIcon className="requirement-icon" />}
-                    Contains numbers
+              <div className="mt-2">
+                <p className="text-sm font-medium text-gray-700">Password Requirements:</p>
+                <ul className="mt-1 space-y-1">
+                  <li className={`flex items-center text-sm ${passwordStrength.length ? 'text-green-600' : 'text-red-600'}`}>
+                    {passwordStrength.length ? 
+                      <CheckCircleIcon className="w-4 h-4 mr-2" /> : 
+                      <XCircleIcon className="w-4 h-4 mr-2" />}
+                    At least 6 characters
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
               <input
                 type="password"
                 name="confirmPassword"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 required
@@ -198,22 +214,23 @@ const Register = () => {
         );
       case 3:
         return (
-          <div className="register-grid">
-            <div className="form-group">
-              <label className="form-label">Department</label>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Department</label>
               <input
                 type="text"
                 name="department"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.department}
                 onChange={handleInputChange}
+                placeholder="Enter your department"
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Year</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Year</label>
               <select
                 name="year"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.year}
                 onChange={handleInputChange}
               >
@@ -223,28 +240,32 @@ const Register = () => {
                 <option value="4th">4th Year</option>
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Student ID</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Student ID</label>
               <input
                 type="text"
                 name="studentId"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.studentId}
                 onChange={handleInputChange}
+                placeholder="Enter your student ID"
               />
             </div>
-            <div className="terms-checkbox">
-              <input
-                type="checkbox"
-                name="acceptTerms"
-                id="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={handleInputChange}
-                required
-              />
-              <label htmlFor="acceptTerms" className="terms-text">
-                I agree to the <Link to="/terms" className="terms-link">Terms and Conditions</Link> and{' '}
-                <Link to="/privacy" className="terms-link">Privacy Policy</Link>
+            <div className="flex items-start mt-4">
+              <div className="flex items-center h-5">
+                <input
+                  type="checkbox"
+                  name="acceptTerms"
+                  id="acceptTerms"
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  checked={formData.acceptTerms}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-600">
+                I agree to the <Link to="/terms" className="text-blue-600 hover:underline">Terms and Conditions</Link> and{' '}
+                <Link to="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>
               </label>
             </div>
           </div>
@@ -255,67 +276,88 @@ const Register = () => {
   };
 
   return (
-    <div className="register-container">
-      <div className="register-form">
-        <h2 className="register-title">Create your account</h2>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${(step / 3) * 100}%` }} />
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
+        <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">Create Account</h2>
+        
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
+            style={{ width: `${(step / 3) * 100}%` }} 
+          />
         </div>
-        <div className="step-indicators">
+        
+        {/* Step Indicators */}
+        <div className="flex justify-between mb-8">
           {[1, 2, 3].map((stepNumber) => (
             <div
               key={stepNumber}
-              className={`step ${stepNumber < step ? 'completed' : stepNumber === step ? 'active' : ''}`}
+              className="flex flex-col items-center"
             >
-              <div className="step-number">{stepNumber}</div>
-              <div className="step-label">
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                stepNumber < step ? 'bg-blue-600 border-blue-600 text-white' : 
+                stepNumber === step ? 'border-blue-600 text-blue-600' : 
+                'border-gray-300 text-gray-300'
+              }`}>
+                {stepNumber}
+              </div>
+              <div className={`mt-2 text-xs ${
+                stepNumber <= step ? 'text-gray-800' : 'text-gray-400'
+              }`}>
                 {stepNumber === 1 ? 'Basic Info' : stepNumber === 2 ? 'Password' : 'Additional Info'}
               </div>
             </div>
           ))}
         </div>
+        
         <form onSubmit={handleSubmit}>
           {renderStep()}
-          <div className="form-actions">
+          
+          <div className="flex justify-between mt-8">
             {step > 1 && (
               <button
                 type="button"
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={handlePrevious}
-                className="action-button secondary"
+                disabled={loading}
               >
                 Previous
               </button>
             )}
+            
+            {step > 1 && step < 3 && <div />}
+            
             {step < 3 ? (
               <button
                 type="button"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={handleNext}
-                className="action-button primary"
+                disabled={loading}
               >
                 Next
               </button>
             ) : (
               <button
                 type="submit"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 disabled={loading}
-                className="action-button primary"
               >
                 {loading ? 'Registering...' : 'Register'}
               </button>
             )}
           </div>
         </form>
-        <div className="auth-footer">
-          <p>
-            Already have an account?{' '}
-            <Link to="/login" className="auth-link">
-              Sign in
-            </Link>
-          </p>
-        </div>
+        
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            Login
+          </Link>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Register; 
+export default Register;

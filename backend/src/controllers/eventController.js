@@ -1,153 +1,163 @@
-const Event = require('../models/Event');
-const User = require('../models/User');
+import Event from '../models/Event.js';
+import asyncHandler from 'express-async-handler';
 
 // @desc    Create a new event
 // @route   POST /api/events
 // @access  Private
-exports.createEvent = async (req, res) => {
-    try {
-        console.log('Received request body:', req.body);
-        console.log('Received file:', req.file);
+export const createEvent = asyncHandler(async (req, res) => {
+    const {
+        title,
+        description,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        venue,
+        maxParticipants,
+        category,
+        registrationFee,
+        image
+    } = req.body;
 
-        const {
-            title,
-            description,
-            category,
-            startDate,
-            endDate,
-            startTime,
-            endTime,
-            venue,
-            maxParticipants,
-            registrationFee
-        } = req.body;
-
-        // Validate required fields
-        if (!title || !description || !category || !startDate || !endDate || 
-            !startTime || !endTime || !venue || !maxParticipants || !registrationFee) {
-            return res.status(400).json({ 
-                message: 'Please provide all required fields',
-                missing: {
-                    title: !title,
-                    description: !description,
-                    category: !category,
-                    startDate: !startDate,
-                    endDate: !endDate,
-                    startTime: !startTime,
-                    endTime: !endTime,
-                    venue: !venue,
-                    maxParticipants: !maxParticipants,
-                    registrationFee: !registrationFee
-                }
-            });
-        }
-
-        // Parse venue and registrationFee from string to object
-        let venueData;
-        let registrationFeeData;
-        
-        try {
-            venueData = typeof venue === 'string' ? JSON.parse(venue) : venue;
-            registrationFeeData = typeof registrationFee === 'string' ? JSON.parse(registrationFee) : registrationFee;
-        } catch (parseError) {
-            console.error('Error parsing JSON:', parseError);
-            return res.status(400).json({ message: 'Invalid venue or registration fee format' });
-        }
-
-        // Create new event
-        const event = new Event({
-            title,
-            description,
-            category,
-            startDate: new Date(startDate),
-            endDate: new Date(endDate),
-            startTime,
-            endTime,
-            venue: venueData,
-            maxParticipants: Number(maxParticipants),
-            registrationFee: {
-                amount: Number(registrationFeeData.amount),
-                currency: registrationFeeData.currency || 'INR'
-            },
-            organizer: req.user._id
-        });
-
-        // Handle image if present
-        if (req.file) {
-            event.image = {
-                data: req.file.buffer,
-                contentType: req.file.mimetype
-            };
-        }
-
-        // Save event
-        const savedEvent = await event.save();
-        console.log('Event saved successfully:', savedEvent);
-
-        // Add event to user's organized events
-        await User.findByIdAndUpdate(
-            req.user._id,
-            { $push: { organizedEvents: savedEvent._id } }
-        );
-
-        res.status(201).json(savedEvent);
-    } catch (error) {
-        console.error('Error creating event:', error);
-        res.status(500).json({ 
-            message: 'Error creating event', 
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+    // Check if all required fields are provided
+    if (!title || !description || !startDate || !endDate || !startTime || !endTime || 
+        !venue?.name || !venue?.location || !venue?.capacity || !maxParticipants || 
+        !category || !registrationFee?.amount || !image?.data || !image?.contentType) {
+        res.status(400);
+        throw new Error('Please provide all required fields');
     }
-};
+
+    // Create event
+    const event = await Event.create({
+        title,
+        description,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        venue,
+        maxParticipants,
+        category,
+        image,
+        registrationFee,
+        organizer: req.user._id
+    });
+
+    if (event) {
+        res.status(201).json({
+            _id: event._id,
+            title: event.title,
+            description: event.description,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            venue: event.venue,
+            maxParticipants: event.maxParticipants,
+            category: event.category,
+            image: event.image,
+            registrationFee: event.registrationFee,
+            organizer: event.organizer,
+            status: event.status
+        });
+    } else {
+        res.status(400);
+        throw new Error('Invalid event data');
+    }
+});
 
 // @desc    Get all events
 // @route   GET /api/events
 // @access  Public
-exports.getEvents = async (req, res) => {
-    try {
-        const events = await Event.find()
-            .populate('organizer', 'name email')
-            .sort({ createdAt: -1 });
-        res.json(events);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching events', error: error.message });
+export const getEvents = asyncHandler(async (req, res) => {
+    const { category, status, search, sort = '-createdAt' } = req.query;
+    
+    const query = {};
+    
+    if (category) {
+        query.category = category;
     }
-};
+    
+    if (status) {
+        query.status = status;
+    }
+    
+    if (search) {
+        query.$or = [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+        ];
+    }
 
-// @desc    Get event by ID
+    const events = await Event.find(query)
+        .sort(sort)
+        .populate('organizer', 'name email')
+        .populate('participants', 'name email');
+
+    res.json(events);
+});
+
+// @desc    Get single event
 // @route   GET /api/events/:id
 // @access  Public
-exports.getEventById = async (req, res) => {
-    try {
-        const event = await Event.findById(req.params.id)
-            .populate('organizer', 'name email')
-            .populate('participants.user', 'name email');
-        
-        if (!event) {
-            return res.status(404).json({ message: 'Event not found' });
-        }
-        
+export const getEventById = asyncHandler(async (req, res) => {
+    const event = await Event.findById(req.params.id)
+        .populate('organizer', 'name email')
+        .populate('participants', 'name email');
+
+    if (event) {
         res.json(event);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching event', error: error.message });
+    } else {
+        res.status(404);
+        throw new Error('Event not found');
     }
-};
+});
 
-// @desc    Get event image
-// @route   GET /api/events/:id/image
-// @access  Public
-exports.getEventImage = async (req, res) => {
-    try {
-        const event = await Event.findById(req.params.id);
-        
-        if (!event || !event.image || !event.image.data) {
-            return res.status(404).json({ message: 'Image not found' });
-        }
+// @desc    Update event
+// @route   PUT /api/events/:id
+// @access  Private/Event Organizer
+export const updateEvent = asyncHandler(async (req, res) => {
+    const event = await Event.findById(req.params.id);
 
-        res.set('Content-Type', event.image.contentType);
-        res.send(event.image.data);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching image', error: error.message });
+    if (!event) {
+        res.status(404);
+        throw new Error('Event not found');
     }
-}; 
+
+    // Check if user is the organizer
+    if (event.organizer.toString() !== req.user._id.toString()) {
+        res.status(401);
+        throw new Error('Not authorized to update this event');
+    }
+
+    // Update event
+    const updatedEvent = await Event.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+    ).populate('organizer', 'name email')
+     .populate('participants', 'name email');
+
+    res.json(updatedEvent);
+});
+
+// @desc    Delete event
+// @route   DELETE /api/events/:id
+// @access  Private/Event Organizer
+export const deleteEvent = asyncHandler(async (req, res) => {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+        res.status(404);
+        throw new Error('Event not found');
+    }
+
+    // Check if user is the organizer
+    if (event.organizer.toString() !== req.user._id.toString()) {
+        res.status(401);
+        throw new Error('Not authorized to delete this event');
+    }
+
+    await event.remove();
+    res.json({ message: 'Event removed' });
+}); 

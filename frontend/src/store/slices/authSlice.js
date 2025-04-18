@@ -6,11 +6,15 @@ export const register = createAsyncThunk(
     'auth/register',
     async (userData, { rejectWithValue }) => {
         try {
-            console.log('User data:', userData);
             const response = await api.post('/auth/register', userData);
+            const { token, ...user } = response.data;
+            if (token) {
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+            }
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response.data);
+            return rejectWithValue(error.response?.data || { message: 'Registration failed' });
         }
     }
 );
@@ -44,12 +48,19 @@ export const logout = createAsyncThunk(
 
 export const getProfile = createAsyncThunk(
     'auth/getProfile',
-    async (_, { rejectWithValue }) => {
+    async (_, { rejectWithValue, getState }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
                 return rejectWithValue({ message: 'No token found' });
             }
+
+            // Check if we're already loading
+            const { loading } = getState().auth;
+            if (loading) {
+                return rejectWithValue({ message: 'Profile fetch already in progress' });
+            }
+
             const response = await api.get('/auth/profile');
             return response.data;
         } catch (error) {
@@ -111,12 +122,29 @@ export const resetPassword = createAsyncThunk(
 );
 
 const initialState = {
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    user: null,
+    token: null,
+    isAuthenticated: false,
     loading: false,
     error: null
 };
+
+// Initialize state from localStorage if available
+const storedUser = localStorage.getItem('user');
+const storedToken = localStorage.getItem('token');
+
+if (storedUser && storedToken) {
+    try {
+        initialState.user = JSON.parse(storedUser);
+        initialState.token = storedToken;
+        initialState.isAuthenticated = true;
+    } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        // Clear invalid data from localStorage
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+    }
+}
 
 const authSlice = createSlice({
     name: 'auth',

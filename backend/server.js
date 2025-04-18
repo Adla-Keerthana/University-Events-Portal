@@ -3,12 +3,13 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import authRoutes from './src/routes/authRoutes.js';
-import eventRoutes from './src/routes/eventRoutes.js';
-import userRoutes from './src/routes/userRoutes.js';
-import notificationRoutes from './src/routes/notificationRoutes.js';
-import sponsorRoutes from './src/routes/sponsorRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import sponsorRoutes from './routes/sponsorRoutes.js';
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -16,10 +17,16 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
-}));
+
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:5173', // Your frontend URL
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -39,7 +46,9 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/university-events';
+
+mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
     // Start server
