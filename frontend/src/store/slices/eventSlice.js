@@ -26,21 +26,14 @@ export const getEventById = createAsyncThunk(
     }
 );
 
+// Change this in eventSlice.js createEvent thunk
 export const createEvent = createAsyncThunk(
     'events/createEvent',
-    async (eventData, { rejectWithValue, getState }) => {
+    async (eventData, { rejectWithValue }) => {
         try {
-            // Get auth token from Redux state
-            const { token } = getState().auth;
-            
-            if (!token) {
-                throw new Error('Not authorized, no token');
-            }
-            
             const response = await api.post('/events', eventData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'multipart/form-data'
                 }
             });
             return response.data;

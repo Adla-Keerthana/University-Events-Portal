@@ -89,94 +89,48 @@ const CreateEvent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to create an event');
+      navigate('/login');
+      return;
+    }
 
     try {
-      // Check authentication first
-      if (!token) {
-        throw new Error('You must be logged in to create an event');
-      }
-
-      // Validate user authentication
-      if (!user?._id) {
-        throw new Error('You must be logged in to create an event');
-      }
-
       const formDataToSend = new FormData();
-
-      // Basic validation
-      if (!formData.title || !formData.description || !formData.category ||
-          !formData.startDate || !formData.endDate || !formData.startTime ||
-          !formData.endTime || !formData.venue.name || !formData.venue.location ||
-          !formData.venue.capacity || !formData.maxParticipants ||
-          !formData.registrationFee.amount) {
-        throw new Error('Please fill in all required fields');
-      }
-
+      
       // Add all form fields to FormData
-      formDataToSend.append('title', formData.title.trim());
-      formDataToSend.append('description', formData.description.trim());
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('organizer', user._id);
-
-      // Format dates properly
-      const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
-      const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
-
-      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-        throw new Error('Invalid date or time format');
-      }
-
-      // Validate start date is before end date
-      if (startDateTime >= endDateTime) {
-        throw new Error('End date and time must be after start date and time');
-      }
-
-      formDataToSend.append('startDate', startDateTime.toISOString());
-      formDataToSend.append('endDate', endDateTime.toISOString());
-      formDataToSend.append('startTime', formData.startTime);
-      formDataToSend.append('endTime', formData.endTime);
-
-      // Validate and format venue data
-      const venueData = {
-        name: formData.venue.name.trim(),
-        location: formData.venue.location.trim(),
-        capacity: parseInt(formData.venue.capacity)
-      };
-
-      if (isNaN(venueData.capacity) || venueData.capacity <= 0) {
-        throw new Error('Venue capacity must be a positive number');
-      }
-
-      formDataToSend.append('venue', JSON.stringify(venueData));
-
-      // Validate and format maxParticipants
-      const maxParticipants = parseInt(formData.maxParticipants);
-      if (isNaN(maxParticipants) || maxParticipants <= 0) {
-        throw new Error('Maximum participants must be a positive number');
-      }
-
-      if (maxParticipants > venueData.capacity) {
-        throw new Error('Maximum participants cannot exceed venue capacity');
-      }
-
-      formDataToSend.append('maxParticipants', maxParticipants);
-
-      // Validate and format registration fee
-      const registrationFeeData = {
-        amount: parseFloat(formData.registrationFee.amount),
-        currency: 'INR'
-      };
-
-      if (isNaN(registrationFeeData.amount) || registrationFeeData.amount < 0) {
-        throw new Error('Registration fee must be a non-negative number');
-      }
-
-      formDataToSend.append('registrationFee', JSON.stringify(registrationFeeData));
+      Object.keys(formData).forEach(key => {
+        if (key === 'venue' || key === 'registrationFee') {
+          // Ensure the objects are properly formatted
+          const value = formData[key];
+          if (key === 'venue') {
+            formDataToSend.append(key, JSON.stringify({
+              name: value.name?.trim() || '',
+              location: value.location?.trim() || '',
+              capacity: Number(value.capacity) || 0
+            }));
+          } else if (key === 'registrationFee') {
+            formDataToSend.append(key, JSON.stringify({
+              amount: Number(value.amount) || 0,
+              currency: 'INR'
+            }));
+          }
+        } else if (key === 'maxParticipants') {
+          formDataToSend.append(key, Number(formData[key]) || 0);
+        } else if (key !== 'image') {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
 
       // Add image if it exists
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
+
+      console.log('Sending form data:', Object.fromEntries(formDataToSend));
 
       const result = await dispatch(createEvent(formDataToSend)).unwrap();
 

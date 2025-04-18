@@ -3,11 +3,11 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import authRoutes from './routes/authRoutes.js';
-import eventRoutes from './routes/eventRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
-import sponsorRoutes from './routes/sponsorRoutes.js';
+import authRoutes from './src/routes/authRoutes.js';
+import eventRoutes from './src/routes/eventRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
+import notificationRoutes from './src/routes/notificationRoutes.js';
+import sponsorRoutes from './src/routes/sponsorRoutes.js';
 
 dotenv.config();
 
