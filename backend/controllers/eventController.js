@@ -18,7 +18,7 @@ export const getEvents = asyncHandler(async (req, res) => {
 
     const events = await Event.find(query)
         .populate('organizer', 'name email')
-        .populate('committeeMembers.user', 'name email')
+        // .populate('committeeMembers.user', 'name email')
         .sort({ startDate: 1 });
     res.json(events);
 });
@@ -59,6 +59,12 @@ export const createEvent = asyncHandler(async (req, res) => {
         rules,
         committeeMembers
     } = req.body;
+    console.log("event registrationFee", registrationFee);
+    console.log("Location", venue.location);
+    console.log("Vrnuw dataa", venue);
+    const parsedVenue = JSON.parse(venue);
+    let amount = Number(registrationFee.amount);
+    let currency = registrationFee.currency;
 
     // Check for venue conflicts
     const event = new Event({
@@ -69,11 +75,14 @@ export const createEvent = asyncHandler(async (req, res) => {
         endDate,
         startTime,
         endTime,
-        venue,
+        location: parsedVenue.location,
         maxParticipants,
-        registrationFee,
+        registrationFee: {
+            amount,
+            currency
+        },
         rules,
-        committeeMembers: committeeMembers || [],
+        image: req.file.filename,
         organizer: req.user._id
     });
 
@@ -162,6 +171,7 @@ export const registerForEvent = asyncHandler(async (req, res) => {
 
     event.participants.push(req.user._id);
     event.currentParticipants += 1;
+
     await event.save();
 
     // Create notification for event organizer
@@ -257,4 +267,4 @@ export const removeCommitteeMember = asyncHandler(async (req, res) => {
 
     const updatedEvent = await event.save();
     res.json(updatedEvent);
-}); 
+});

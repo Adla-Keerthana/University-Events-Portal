@@ -32,11 +32,11 @@ export const createEvent = createAsyncThunk(
     async (eventData, { rejectWithValue, getState }) => {
         try {
             const { token } = getState().auth;
-            
+
             if (!token) {
                 throw new Error('Not authorized, no token');
             }
-            
+
             const response = await api.post('/events', eventData, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -57,11 +57,11 @@ export const updateEvent = createAsyncThunk(
     async ({ id, eventData }, { rejectWithValue, getState }) => {
         try {
             const { token } = getState().auth;
-            
+
             if (!token) {
                 throw new Error('Not authorized, no token');
             }
-            
+
             const response = await api.put(`/events/${id}`, eventData, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -73,17 +73,27 @@ export const updateEvent = createAsyncThunk(
         }
     }
 );
+export const getEventStatus = (start, end) => {
+    const now = new Date();
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (now < startDate) return 'Upcoming';
+    if (now >= startDate && now <= endDate) return 'Ongoing';
+    return 'Completed';
+};
+
 
 export const deleteEvent = createAsyncThunk(
     'events/deleteEvent',
     async (id, { rejectWithValue, getState }) => {
         try {
             const { token } = getState().auth;
-            
+
             if (!token) {
                 throw new Error('Not authorized, no token');
             }
-            
+
             await api.delete(`/events/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -101,11 +111,11 @@ export const registerForEvent = createAsyncThunk(
     async (eventId, { rejectWithValue, getState }) => {
         try {
             const { token } = getState().auth;
-            
+
             if (!token) {
                 throw new Error('Not authorized, no token');
             }
-            
+
             const response = await api.post(`/events/${eventId}/register`, {}, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -123,11 +133,11 @@ export const cancelRegistration = createAsyncThunk(
     async (eventId, { rejectWithValue, getState }) => {
         try {
             const { token } = getState().auth;
-            
+
             if (!token) {
                 throw new Error('Not authorized, no token');
             }
-            
+
             const response = await api.delete(`/events/${eventId}/register`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -145,11 +155,11 @@ export const updateEventResults = createAsyncThunk(
     async ({ eventId, results }, { rejectWithValue, getState }) => {
         try {
             const { token } = getState().auth;
-            
+
             if (!token) {
                 throw new Error('Not authorized, no token');
             }
-            
+
             const response = await api.post(`/events/${eventId}/results`, { results }, {
                 headers: {
                     'Authorization': `Bearer ${token}`

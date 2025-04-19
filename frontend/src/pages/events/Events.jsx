@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { getEvents, deleteEvent } from '../../store/slices/eventSlice';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import {
+  getEvents,
+  deleteEvent,
+  getEventStatus,
+} from "../../store/slices/eventSlice";
+import { toast } from "react-toastify";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -23,36 +27,39 @@ import {
   ArrowPathIcon,
   HeartIcon,
   BookmarkIcon,
-} from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
+} from "@heroicons/react/24/outline";
+import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 
 const EventCard = ({ event, onDelete, isAdmin }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const status = getEventStatus(event.startDate, event.endDate);
-  
+
   const statusColors = {
-    Upcoming: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-    Ongoing: 'bg-blue-100 text-blue-800 border border-blue-200',
-    Completed: 'bg-gray-100 text-gray-800 border border-gray-200',
+    Upcoming: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    Ongoing: "bg-blue-100 text-blue-800 border border-blue-200",
+    Completed: "bg-gray-100 text-gray-800 border border-gray-200",
   };
 
   const handleFavoriteToggle = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsFavorite(!isFavorite);
-    toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+    toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
   const getCategoryColor = (category) => {
     const colors = {
-      Academic: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-      Sports: 'bg-amber-100 text-amber-800 border border-amber-200',
-      Cultural: 'bg-rose-100 text-rose-800 border border-rose-200',
-      Technical: 'bg-sky-100 text-sky-800 border border-sky-200',
-      Workshop: 'bg-purple-100 text-purple-800 border border-purple-200',
+      Academic: "bg-indigo-100 text-indigo-800 border border-indigo-200",
+      Sports: "bg-amber-100 text-amber-800 border border-amber-200",
+      Cultural: "bg-rose-100 text-rose-800 border border-rose-200",
+      Technical: "bg-sky-100 text-sky-800 border border-sky-200",
+      Workshop: "bg-purple-100 text-purple-800 border border-purple-200",
     };
-    return colors[category] || 'bg-primary-100 text-primary-800 border border-primary-200';
+    return (
+      colors[category] ||
+      "bg-primary-100 text-primary-800 border border-primary-200"
+    );
   };
 
   return (
@@ -64,27 +71,29 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
       <div className="relative overflow-hidden">
         <div className="aspect-w-16 aspect-h-9">
           <img
-            src={event.image || '/api/placeholder/600/400'}
+            src={event.image || "/api/placeholder/600/400"}
             alt={event.title}
             className="w-full h-48 object-cover transition-transform duration-700 group-hover:scale-110"
           />
         </div>
-        
+
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70"></div>
-        
+
         {/* Event date badge */}
         <div className="absolute top-3 left-3">
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="px-3 py-1 bg-primary-500 text-white text-xs font-bold">
-              {new Date(event.startDate).toLocaleDateString('en-US', { month: 'short' })}
+              {new Date(event.startDate).toLocaleDateString("en-US", {
+                month: "short",
+              })}
             </div>
             <div className="px-3 py-1 font-bold text-center text-primary-700">
               {new Date(event.startDate).getDate()}
             </div>
           </div>
         </div>
-        
+
         {/* Favorite and admin actions */}
         <div className="absolute top-3 right-3 flex space-x-2">
           <button
@@ -97,7 +106,7 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
               <HeartIcon className="w-5 h-5 text-gray-600" />
             )}
           </button>
-          
+
           {isAdmin && (
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <Link
@@ -115,22 +124,28 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
             </div>
           )}
         </div>
-        
+
         {/* Status badge */}
         <div className="absolute bottom-3 left-3">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[status]}`}>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[status]}`}
+          >
             {status}
           </span>
         </div>
-        
+
         {/* Category badge */}
         <div className="absolute bottom-3 right-3">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getCategoryColor(event.category)}`}>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getCategoryColor(
+              event.category
+            )}`}
+          >
             {event.category}
           </span>
         </div>
       </div>
-      
+
       <div className="p-5">
         <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-primary-600 transition-colors">
           {event.title}
@@ -143,17 +158,19 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-gray-500">
             <CalendarIcon className="w-4 h-4 mr-2 text-primary-500" />
-            <span>{new Date(event.startDate).toLocaleDateString('en-US', { 
-              weekday: 'short', 
-              month: 'short', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</span>
+            <span>
+              {new Date(event.startDate).toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
           </div>
           <div className="flex items-center text-sm text-gray-500">
             <MapPinIcon className="w-4 h-4 mr-2 text-primary-500" />
-            <span>{event.venue.name}</span>
+            <span>{event.venue?.location}</span>
           </div>
           <div className="flex items-center text-sm text-gray-500">
             <UserGroupIcon className="w-4 h-4 mr-2 text-primary-500" />
@@ -175,15 +192,15 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
 const CategoryFilterChip = ({ category, isActive, onClick }) => {
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'Academic':
+      case "Academic":
         return <AcademicCapIcon className="h-5 w-5" />;
-      case 'Sports':
+      case "Sports":
         return <TrophyIcon className="h-5 w-5" />;
-      case 'Cultural':
+      case "Cultural":
         return <MusicalNoteIcon className="h-5 w-5" />;
-      case 'Technical':
+      case "Technical":
         return <WrenchIcon className="h-5 w-5" />;
-      case 'Workshop':
+      case "Workshop":
         return <LightBulbIcon className="h-5 w-5" />;
       default:
         return <CalendarIcon className="h-5 w-5" />;
@@ -194,9 +211,9 @@ const CategoryFilterChip = ({ category, isActive, onClick }) => {
     <button
       onClick={() => onClick(category)}
       className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-        isActive 
-          ? 'bg-primary-100 text-primary-700 border border-primary-300' 
-          : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+        isActive
+          ? "bg-primary-100 text-primary-700 border border-primary-300"
+          : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
       }`}
     >
       <span className="mr-1.5">{getCategoryIcon(category)}</span>
@@ -211,21 +228,32 @@ const Events = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
 
   const [filters, setFilters] = useState({
-    search: '',
-    category: '',
-    status: '',
-    sort: '-createdAt',
+    search: "",
+    category: "",
+    status: "",
+    sort: "-createdAt",
   });
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState("grid");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const categories = [
-    'All', 'Academic', 'Sports', 'Cultural', 'Technical', 
-    'Workshop', 'Chess', 'Basketball', 'Swimming', 'Athletics', 
-    'Cricket', 'Badminton', 'Table Tennis', 'Hackathons'
+    "All",
+    "Academic",
+    "Sports",
+    "Cultural",
+    "Technical",
+    "Workshop",
+    "Chess",
+    "Basketball",
+    "Swimming",
+    "Athletics",
+    "Cricket",
+    "Badminton",
+    "Table Tennis",
+    "Hackathons",
   ];
 
   useEffect(() => {
@@ -238,9 +266,9 @@ const Events = () => {
   };
 
   const handleCategoryFilter = (category) => {
-    setFilters((prev) => ({ 
-      ...prev, 
-      category: category === 'All' ? '' : category 
+    setFilters((prev) => ({
+      ...prev,
+      category: category === "All" ? "" : category,
     }));
   };
 
@@ -257,12 +285,12 @@ const Events = () => {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
+    if (window.confirm("Are you sure you want to delete this event?")) {
       try {
         await dispatch(deleteEvent(eventId)).unwrap();
-        toast.success('Event deleted successfully');
+        toast.success("Event deleted successfully");
       } catch (error) {
-        toast.error(error || 'Failed to delete event');
+        toast.error(error || "Failed to delete event");
       }
     }
   };
@@ -272,9 +300,9 @@ const Events = () => {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    if (now < start) return 'Upcoming';
-    if (now >= start && now <= end) return 'Ongoing';
-    return 'Completed';
+    if (now < start) return "Upcoming";
+    if (now >= start && now <= end) return "Ongoing";
+    return "Completed";
   };
 
   return (
@@ -287,33 +315,45 @@ const Events = () => {
               <CalendarIcon className="w-5 h-5 mr-2" />
               <span className="font-medium">Browse Events</span>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900">Events Calendar</h1>
+            <h1 className="text-4xl font-bold text-gray-900">
+              Events Calendar
+            </h1>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <button
               onClick={handleRefresh}
-              className={`p-2 rounded-full bg-white shadow-sm hover:shadow-md transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+              className={`p-2 rounded-full bg-white shadow-sm hover:shadow-md transition-all ${
+                isRefreshing ? "animate-spin" : ""
+              }`}
               disabled={isRefreshing}
             >
               <ArrowPathIcon className="h-5 w-5 text-gray-600" />
             </button>
-            
+
             <div className="hidden sm:flex items-center space-x-1 rounded-lg bg-white shadow-sm p-1">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded ${
+                  viewMode === "grid"
+                    ? "bg-primary-100 text-primary-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
               >
                 <TableCellsIcon className="h-5 w-5" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded ${
+                  viewMode === "list"
+                    ? "bg-primary-100 text-primary-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
               >
                 <ListBulletIcon className="h-5 w-5" />
               </button>
             </div>
-            
+
             {isAuthenticated && (
               <Link
                 to="/events/create"
@@ -333,7 +373,9 @@ const Events = () => {
               <CategoryFilterChip
                 key={category}
                 category={category}
-                isActive={filters.category === (category === 'All' ? '' : category)}
+                isActive={
+                  filters.category === (category === "All" ? "" : category)
+                }
                 onClick={handleCategoryFilter}
               />
             ))}
@@ -373,15 +415,26 @@ const Events = () => {
               >
                 <FunnelIcon className="h-5 w-5 mr-2" />
                 Filters
-                <ChevronDownIcon className={`ml-2 h-5 w-5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon
+                  className={`ml-2 h-5 w-5 transform transition-transform duration-200 ${
+                    showFilters ? "rotate-180" : ""
+                  }`}
+                />
               </button>
             </div>
 
             {/* Filter Options */}
-            <div className={`mt-4 space-y-4 ${showFilters ? 'block' : 'hidden'}`}>
+            <div
+              className={`mt-4 space-y-4 ${showFilters ? "block" : "hidden"}`}
+            >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label
+                    htmlFor="category"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Category
+                  </label>
                   <select
                     id="category"
                     name="category"
@@ -399,7 +452,12 @@ const Events = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label
+                    htmlFor="status"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Status
+                  </label>
                   <select
                     id="status"
                     name="status"
@@ -415,7 +473,12 @@ const Events = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                  <label
+                    htmlFor="sort"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Sort By
+                  </label>
                   <select
                     id="sort"
                     name="sort"
@@ -442,9 +505,12 @@ const Events = () => {
         ) : events.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md text-center py-16">
             <CalendarIcon className="mx-auto h-16 w-16 text-gray-400" />
-            <h3 className="mt-4 text-xl font-medium text-gray-900">No events found</h3>
+            <h3 className="mt-4 text-xl font-medium text-gray-900">
+              No events found
+            </h3>
             <p className="mt-2 text-gray-500 max-w-md mx-auto">
-              We couldn't find any events matching your criteria. Try adjusting your search or filters.
+              We couldn't find any events matching your criteria. Try adjusting
+              your search or filters.
             </p>
             {isAuthenticated && (
               <div className="mt-8">
@@ -463,30 +529,43 @@ const Events = () => {
             {/* Event Count */}
             <div className="flex items-center justify-between mb-6">
               <p className="text-gray-700">
-                Showing <span className="font-medium">{events.length}</span> events
+                Showing <span className="font-medium">{events.length}</span>{" "}
+                events
               </p>
-              
+
               <div className="flex items-center space-x-2">
                 <p className="text-sm text-gray-500">View:</p>
                 <div className="flex sm:hidden items-center space-x-1 rounded-lg bg-white shadow-sm p-1">
                   <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    onClick={() => setViewMode("grid")}
+                    className={`p-1.5 rounded ${
+                      viewMode === "grid"
+                        ? "bg-primary-100 text-primary-700"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
                   >
                     <TableCellsIcon className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    onClick={() => setViewMode("list")}
+                    className={`p-1.5 rounded ${
+                      viewMode === "list"
+                        ? "bg-primary-100 text-primary-700"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
                   >
                     <ListBulletIcon className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             </div>
-            
+
             {/* Event Grid */}
-            <div className={`grid grid-cols-1 ${viewMode === 'grid' ? 'md:grid-cols-2 lg:grid-cols-3' : ''} gap-6 md:gap-8`}>
+            <div
+              className={`grid grid-cols-1 ${
+                viewMode === "grid" ? "md:grid-cols-2 lg:grid-cols-3" : ""
+              } gap-6 md:gap-8`}
+            >
               {events.map((event) => (
                 <EventCard
                   key={event._id}

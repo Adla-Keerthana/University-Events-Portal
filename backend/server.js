@@ -8,14 +8,18 @@ import eventRoutes from './routes/eventRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import sponsorRoutes from './routes/sponsorRoutes.js';
-
+import bodyParser from 'body-parser';
 // Load environment variables
 dotenv.config();
 
 const app = express();
-
-// Middleware
 app.use(express.json());
+
+
+// Increase the limit for JSON payloads
+app.use(bodyParser.json({ limit: '10mb' })); // or more depending on your needs
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+// Middleware
 app.use(cookieParser());
 
 // CORS configuration
@@ -60,4 +64,4 @@ mongoose.connect(MONGODB_URI)
   .catch((error) => {
     console.error('MongoDB connection error:', error);
     process.exit(1);
-  }); 
+  });

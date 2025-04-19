@@ -10,10 +10,7 @@ const eventSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide a description']
   },
-  date: {
-    type: Date,
-    required: [true, 'Please provide a date']
-  },
+
   location: {
     type: String,
     required: [true, 'Please provide a location']
@@ -21,12 +18,17 @@ const eventSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Please provide a category'],
-    enum: ['academic', 'sports', 'cultural', 'technical', 'workshop', 'other']
+    enum: ['Academic', 'Sports', 'Cultural', 'Technical', 'Workshop', 'Other']
   },
   registrationFee: {
-    type: Number,
-    required: [true, 'Please provide registration fee'],
-    default: 0
+    amount: {
+      type: String,
+      required: true
+    },
+    currency: {
+      type: String,
+      default: 'INR'
+    }
   },
   maxParticipants: {
     type: Number,
@@ -60,7 +62,7 @@ const eventSchema = new mongoose.Schema({
 });
 
 // Update status based on date
-eventSchema.pre('save', function(next) {
+eventSchema.pre('save', function (next) {
   const now = new Date();
   const eventDate = new Date(this.date);
 
@@ -74,7 +76,19 @@ eventSchema.pre('save', function(next) {
 
   next();
 });
+eventSchema.methods.hasConflict = async function () {
+  const conflictingEvent = await this.constructor.findOne({
+    _id: { $ne: this._id },
+    venue: this.venue,
+    startDate: { $lte: this.endDate },
+    endDate: { $gte: this.startDate },
+    startTime: { $lt: this.endTime },
+    endTime: { $gt: this.startTime }
+  });
+
+  return !!conflictingEvent;
+};
 
 const Event = mongoose.model('Event', eventSchema);
 
-export default Event; 
+export default Event;
