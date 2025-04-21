@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { getProfile, updateProfile } from '../../store/slices/authSlice';
 import {
   UserCircleIcon,
@@ -13,7 +14,8 @@ import './Profile.css';
 
 const Profile = () => {
   const dispatch = useDispatch();
-  const { user, loading, error } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const { user, loading, error, isAuthenticated } = useSelector((state) => state.auth);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -24,25 +26,30 @@ const Profile = () => {
     confirmPassword: '',
   });
 
-  const fetchProfile = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (token && !loading) {
-      await dispatch(getProfile());
-    }
-  }, [dispatch, loading]);
-
+  // Check authentication and fetch profile data
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
 
+    if (!user && !loading) {
+      dispatch(getProfile());
+    }
+  }, [dispatch, navigate, user, loading]);
+
+  // Update form data when user data changes
   useEffect(() => {
     if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.name,
-        email: user.email,
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
         department: user.department || '',
-      }));
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
     }
   }, [user]);
 
@@ -65,8 +72,14 @@ const Profile = () => {
       ...(newPassword && { currentPassword, newPassword }),
     };
 
-    await dispatch(updateProfile(updateData));
-    setIsEditing(false);
+    try {
+      await dispatch(updateProfile(updateData));
+      setIsEditing(false);
+      // Refresh profile data after update
+      await dispatch(getProfile());
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
   };
 
   if (loading) {

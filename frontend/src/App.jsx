@@ -15,6 +15,7 @@ import Profile from "./pages/user/Profile";
 import Notifications from "./pages/user/Notifications";
 import About from "./pages/about/About";
 import Contact from "./pages/contact/Contact";
+import EditEvent from "./pages/events/EditEvent";
 import "./App.css";
 
 const App = () => {
@@ -29,6 +30,7 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/events" element={<Events />} />
+              
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route
@@ -55,6 +57,7 @@ const App = () => {
                   </PrivateRoute>
                 }
               />
+              <Route path="/events/edit/:id" element={<EditEvent />} />
             </Routes>
           </main>
         </div>

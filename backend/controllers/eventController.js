@@ -144,7 +144,7 @@ export const deleteEvent = asyncHandler(async (req, res) => {
         throw new Error('Event not found');
     }
 
-    await event.remove();
+    await Event.deleteOne({ _id: req.params.id });
     res.json({ message: 'Event removed' });
 });
 

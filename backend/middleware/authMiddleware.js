@@ -68,7 +68,12 @@ export const eventOrganizer = asyncHandler(async (req, res, next) => {
         throw new Error('Event not found');
     }
 
-    if (req.user && (req.user.role === 'admin' || event.organizer.toString() === req.user._id.toString())) {
+    // Check if user is admin or a committee member of this event
+    const isCommitteeMember = event.committeeMembers.some(
+        member => member.user.toString() === req.user._id.toString()
+    );
+
+    if (req.user && (req.user.role === 'admin' || isCommitteeMember)) {
         next();
     } else {
         res.status(403);

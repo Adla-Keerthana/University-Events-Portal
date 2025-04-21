@@ -31,8 +31,11 @@ import {
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 
 const EventCard = ({ event, onDelete, isAdmin }) => {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const status = getEventStatus(event.startDate, event.endDate);
 
   const statusColors = {
@@ -60,6 +63,21 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
       colors[category] ||
       "bg-primary-100 text-primary-800 border border-primary-200"
     );
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      try {
+        setIsDeleting(true);
+        await dispatch(deleteEvent(event._id)).unwrap();
+        await dispatch(getEvents()).unwrap();
+        toast.success('Event deleted successfully');
+      } catch (error) {
+        toast.error(error || 'Failed to delete event');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   return (
@@ -116,7 +134,7 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
                 <PencilIcon className="w-5 h-5 text-blue-600" />
               </Link>
               <button
-                onClick={() => onDelete(event._id)}
+                onClick={handleDelete}
                 className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-all"
               >
                 <TrashIcon className="w-5 h-5 text-red-600" />
@@ -163,6 +181,7 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
                 weekday: "short",
                 month: "short",
                 day: "numeric",
+                year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -184,6 +203,19 @@ const EventCard = ({ event, onDelete, isAdmin }) => {
         >
           View Details
         </Link>
+
+        {/* Add delete button for committee members */}
+        {user?.role === 'committee_member' && (
+          <div className="p-4 border-t">
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Event'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
