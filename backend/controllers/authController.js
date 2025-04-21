@@ -139,10 +139,10 @@ export const verifyEmail = asyncHandler(async (req, res) => {
         user.isEmailVerified = true;
         await user.save();
         
-        res.json({ message: 'Email verified successfully' });
+        res.json({ message: 'Email verified successfully...' });
     } catch (error) {
         res.status(401);
-        throw new Error('Invalid or expired token');
+        throw new Error('Invalid or expired token...');
     }
 });
 

@@ -11,7 +11,7 @@ import {
     resetPassword,
     manageCommittee,
     updateUserStatus
-} from '../controllers/authController.js';
+} from '../controllers/authcontroller.js';
 
 const router = express.Router();
 
